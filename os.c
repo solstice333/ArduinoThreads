@@ -33,7 +33,8 @@ __attribute__((naked)) void context_switch(uint16_t* new_tp, uint16_t* old_tp) {
 
 __attribute__((naked)) void thread_start(void) {
    sei(); //enable interrupts - leave this as the first statement in thread_start()
-   // TODO implement thread_start first
+   // TODO implement thread_start first. Note there's no explicit call to thread_start
+   // except in context switch
 }
 
 void os_init() {
@@ -74,18 +75,17 @@ void create_thread(uint16_t address, void *args, uint16_t stack_size) {
 
 void os_start() {
    system_threads.current_thread = get_next_thread();
-   if (system_threads.current_thread != ETHREAD)
-      thread_start();
+   while (1) 
+      if (system_threads.current_thread != ETHREAD)
+         context_switch();
 }
 
 uint8_t get_next_thread() {
    int next;
-   uint8_t save;
+   uint8_t save = system_threads.current_thread;
 
    if (system_threads.current_thread >= MAX_THREADS) {
-      save = system_threads.current_thread;
       system_threads.current_thread = MAX_THREADS - 1;
-   }
 
    for (next = (system_threads.current_thread + 1) % MAX_THREADS;
     next != system_threads.current_thread && 
