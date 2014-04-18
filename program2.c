@@ -5,9 +5,9 @@
 #include "os.h"
 
 /*
- * Blinks the on-board LED once per second
+ * Blinks the on-board LED for |t| milliseconds
  */
-void blink();
+void blink(int t);
 
 /*
  * Sends "Hello " to the host machine which can be seen with the screen 
@@ -17,18 +17,27 @@ void blink();
 void out();
 
 int main() {
+   int t = 500;   // arg for blink
+
+   serial_init();
    os_init();
-   create_thread(blink);
-   create_thread(out);
-   os_start();
+   create_thread(blink, &t, sizeof(regs_context_switch) + 
+    sizeof(regs_interrupt) + sizeof(t));
+   // create_thread(out);
+   // os_start();
    return 0;
 }
 
-void blink() {
+void blink(int t) {
+   int i;
+
    while (1) {
       DDRB |= 1 << 5;
       PORTB &= ~(1 << 5);
-      _delay_ms(1000);
+
+      for (i = 0; i < t; i++)
+         _delay_ms(1);
+
       DDRB |= 1 << 5;
       PORTB |= 1 << 5;
       _delay_ms(1000);
