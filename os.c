@@ -39,7 +39,7 @@ __attribute__((naked)) void thread_start(void) {
 void os_init() {
    int i;
 
-   system_threads.current_thread = 255;
+   system_threads.current_thread = ETHREAD;
    for (i = 0; i < MAX_THREADS; i++)
       system_threads.thread_list[i].active = 0;
    system_threads.active_threads_count = 0;
@@ -74,7 +74,8 @@ void create_thread(uint16_t address, void *args, uint16_t stack_size) {
 
 void os_start() {
    system_threads.current_thread = get_next_thread();
-   thread_start();
+   if (system_threads.current_thread != ETHREAD)
+      thread_start();
 }
 
 uint8_t get_next_thread() {
@@ -95,7 +96,7 @@ uint8_t get_next_thread() {
    if (next == system_threads.current_thread && 
     !system_threads.thread_list[next].active) {
       system_threads.current_thread = save;
-      return 255;
+      return ETHREAD;
    }
    return next;
 }

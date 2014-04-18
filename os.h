@@ -7,6 +7,7 @@
 #include "globals.h"
 
 #define MAX_THREADS 8
+#define ETHREAD 255
 
 //This structure defines the register order pushed to the stack on a
 //system context switch.
