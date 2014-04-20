@@ -7,6 +7,8 @@
 #include "globals.h"
 
 #define MAX_THREADS 8
+#define M_OFFSET 18  // offset for manually saved registers
+#define PC_OFFSET 2   // offset related to automatic push of pc
 #define ETHREAD 255
 
 //This structure defines the register order pushed to the stack on a
@@ -68,8 +70,8 @@ typedef struct regs_interrupt {
 typedef struct thread_t {
    uint8_t thread_id;
    uint16_t thread_pc;
-   size_t stack_usage;
-   size_t stack_size;
+   uint16_t stack_usage;
+   uint16_t stack_size;
    uint8_t *tos;
    uint8_t *base;
    uint8_t *end;
@@ -93,10 +95,10 @@ typedef struct system_t {
 void os_init();
 
 /*
- * Creates a thread by allocating space in the heap to store data belonging
- * to that thread (i.e. contents in register) and updates the static global 
- * variable |system_threads|. |address| is the pointer to the function to 
- * be ran as a thread. |args| is a pointer to the beginning of a continguous
+ * Creates a thread by allocating space for a stack to store data belonging
+ * to that thread and updates the static global variable |system_threads|. 
+ * |address| is the pointer to the function to be ran as a thread. 
+ * |args| is a pointer to the beginning of a continguous
  * block of memory that defines the arguments to be sent into the function
  * starting at |address|. For example if main() called create_thread and
  * int x and y were declared and initialized in main and then passed into 
@@ -108,13 +110,13 @@ void os_init();
 void create_thread(uint16_t address, void* args, uint16_t stack_size);
 
 /*
- * Turns on interrupts to allow for context switches
+ * Calls context switch to enable interrupts
  */
 void os_start();
 
 /*
  * Gets the next thread. Returns the thread id if successful. Returns
- * 255 otherwise. 
+ * ETHREAD otherwise. 
  */
 uint8_t get_next_thread();
 

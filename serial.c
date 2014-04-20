@@ -11,7 +11,7 @@
    type __copy = (num), __quo = (num);\
    int __i, __length;\
    \
-   for (__length = 0; __copy; __length++)\
+   for (__length = 0; __copy || !__length; __length++)\
       __copy /= 10;\
    \
    for (__i = __length - 1; __i >= 0; __i--) {\
@@ -33,7 +33,7 @@
    type __copy = (num), __quo = (num), __rem;\
    int __i, __length;\
    \
-   for (__length = 0; __copy; __length++)\
+   for (__length = 0; __copy || !__length; __length++)\
       __copy /= 16;\
    \
    for (__i = __length - 1; __i >= 0; __i--) {\

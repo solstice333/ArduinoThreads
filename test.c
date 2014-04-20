@@ -1,33 +1,53 @@
 #include <stdio.h>
 
-typedef struct thread {
-   int active;
-} thread;
+#define numToAsciiHex(type, num, container) {\
+   type __copy = (num), __quo = (num), __rem;\
+   int __i, __length;\
+   \
+   for (__length = 0; __copy || !__length; __length++)\
+      __copy /= 16;\
+   \
+   for (__i = __length - 1; __i >= 0; __i--) {\
+      __rem = (__quo) % 16;\
+   \
+      switch (__rem) {\
+         case 10:\
+            __rem = 'A';\
+            break;\
+         case 11:\
+            __rem = 'B';\
+            break;\
+         case 12:\
+            __rem = 'C';\
+            break;\
+         case 13:\
+            __rem = 'D';\
+            break;\
+         case 14:\
+            __rem = 'E';\
+            break;\
+         case 15:\
+            __rem = 'F';\
+            break;\
+         default:\
+            __rem += '0';\
+      }\
+      (container)[__i] = __rem;\
+      (__quo) /= 16;\
+   }\
+   (container)[__length] = 0;\
+}\
 
+void print_hex(int i) {
+   int iAsciiHex[16], *runner = iAsciiHex;
+
+   numToAsciiHex(int, i, iAsciiHex);
+   while(*runner)
+      printf("%c", *runner++);
+}
 
 int main() {
-   int i = 0;
-   int current = 1;
-   int save = current;
-   printf("save: %d\n", current);
-   thread threadlist[8];
-
-   for (i = 0; i < 8; i++)
-      threadlist[i].active = i == 4 ? 0 : 0;
-
-   if (current >= 8)
-      current = 7;
-
-   for (i = (current + 1) % 8; i != current && !threadlist[i].active;
-    i = (i + 1) % 8) 
-      printf("%d\n", i);
-
-   if (i == current && !threadlist[i].active) {
-      current = save;
-      i = 255;
-   }
-
-   printf("returning: %d\n", i);
-
+   print_hex(0);
    return 0;
 }
+

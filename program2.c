@@ -20,11 +20,11 @@ int main() {
    int t = 500;   // arg for blink
 
    serial_init();
+
    os_init();
    create_thread(blink, &t, sizeof(regs_context_switch) + 
     sizeof(regs_interrupt) + sizeof(t));
-   // create_thread(out);
-   // os_start();
+   os_start();
    return 0;
 }
 
