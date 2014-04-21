@@ -10,6 +10,7 @@
 #define M_OFFSET 18  // offset for manually saved registers
 #define PC_OFFSET 2   // offset related to automatic push of pc
 #define ETHREAD 255
+#define INIT_SIZE 20
 
 //This structure defines the register order pushed to the stack on a
 //system context switch.

@@ -14,7 +14,7 @@ void blink(int t);
  * command
  */
 // TODO make this print stats later
-void out();
+void stats();
 
 int main() {
    int t = 500;   // arg for blink
@@ -24,6 +24,8 @@ int main() {
    os_init();
    create_thread(blink, &t, sizeof(regs_context_switch) + 
     sizeof(regs_interrupt) + sizeof(t));
+   // create_thread(stats, NULL, sizeof(regs_context_switch) +
+    // sizeof(regs_interrupt)); 
    os_start();
    return 0;
 }
@@ -44,7 +46,7 @@ void blink(int t) {
    }
 }
 
-void out() {
+void stats() {
    serial_init();
    while (1) {
       _delay_ms(1000);
