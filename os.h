@@ -12,6 +12,10 @@
 #define ETHREAD 255
 #define INIT_SIZE 20
 
+typedef enum {
+   false, true
+} boolean;
+
 //This structure defines the register order pushed to the stack on a
 //system context switch.
 typedef struct regs_context_switch {
@@ -77,7 +81,8 @@ typedef struct thread_t {
    uint8_t *base;
    uint8_t *end;
    void *args;
-   uint8_t active;
+   boolean active;
+   boolean new_thread;
 } thread_t;
 
 // system_t contains a list of all threads running and a pointer to the

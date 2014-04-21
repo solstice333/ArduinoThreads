@@ -24,8 +24,8 @@ int main() {
    os_init();
    create_thread(blink, &t, sizeof(regs_context_switch) + 
     sizeof(regs_interrupt) + sizeof(t));
-   // create_thread(stats, NULL, sizeof(regs_context_switch) +
-    // sizeof(regs_interrupt)); 
+   create_thread(stats, NULL, sizeof(regs_context_switch) +
+    sizeof(regs_interrupt)); 
    os_start();
    return 0;
 }
@@ -50,6 +50,6 @@ void stats() {
    serial_init();
    while (1) {
       _delay_ms(1000);
-      print_string("Hello ");
+      print_string("FooFooFoo ");
    }
 }
