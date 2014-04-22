@@ -24,8 +24,8 @@ int main() {
    os_init();
    create_thread(blink, &t, sizeof(regs_context_switch) + 
     sizeof(regs_interrupt) + sizeof(t));
-   // create_thread(stats, NULL, sizeof(regs_context_switch) +
-    // sizeof(regs_interrupt)); 
+   create_thread(stats, NULL, sizeof(regs_context_switch) +
+    sizeof(regs_interrupt)); 
    os_start();
    return 0;
 }
@@ -48,11 +48,11 @@ void blink(uint16_t t) {
 
 void stats() {
    serial_init();
-   system_t *st_ptr = get_system_stats();
+   // system_t *st_ptr = get_system_stats();
 
    while (1) {
       _delay_ms(1000);
-      print_int(st_ptr->current_thread);
-      //print_string("foofoo");
+      // print_int(st_ptr->current_thread);
+      print_string("foofoo ");
    }
 }

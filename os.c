@@ -1,9 +1,11 @@
 #include "os.h"
 #include "globals.h"
 
-#define DEBUG 0
+#define DEBUG 1
 
 #if DEBUG
+#define MAX 3
+
    static volatile int row = 1;
 #endif
 
@@ -30,9 +32,19 @@ ISR(TIMER0_COMPA_vect) {
 
    if (old_id == new_id)
       context_switch(SP - M_OFFSET - PC_OFFSET, SP - PC_OFFSET);
-   else 
+   else {
+      // TODO double check this tos with the base/end range
+      // problems with first interrupt transition from blink to stats
+
+
+
+
+
+
+
       context_switch(system_threads.thread_list[new_id].tos - 1, 
        SP - PC_OFFSET);
+   }
 }
 
 //Call this to start the system timer interrupt
@@ -164,36 +176,6 @@ void create_thread(uint16_t address, void *args, uint16_t stack_size) {
    for (idx = 0; idx < 15; idx++)
       *open_thread->tos-- = *byte_ptr++;
    *open_thread->tos = *byte_ptr;
-
-#if DEBUG
-   /*
-   set_cursor(row++, 1);
-   print_string("stack: ");
-   for (idx = 0; idx >= -10; idx--) {
-      set_cursor(row++, 1);
-      print_hex(open_thread->base[idx]);
-   }
-   */
-
-   /*
-   set_cursor(row++, 1);
-   print_string("In create_thread");
-
-   set_cursor(row++, 1);
-   print_string("current tos position: ");
-   print_int(open_thread->tos);
-
-   set_cursor(row++, 1);
-   print_string("base: ");
-   print_int(open_thread->base);
-   set_cursor(row++, 1);
-   print_string("end: ");
-   print_int(open_thread->end);
-
-   set_cursor(row++, 1);
-   print_string("Leaving create_thread");
-   */
-#endif
 }
 
 void os_start() {
