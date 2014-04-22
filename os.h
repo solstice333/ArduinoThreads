@@ -9,6 +9,7 @@
 #define MAX_THREADS 8
 #define M_OFFSET 18  // offset for manually saved registers
 #define PC_OFFSET 2   // offset related to automatic push of pc
+#define ARGS 2
 #define ETHREAD 255
 #define INIT_SIZE 20
 
@@ -80,9 +81,7 @@ typedef struct thread_t {
    uint8_t *tos;
    uint8_t *base;
    uint8_t *end;
-   void *args;
    boolean active;
-   boolean new_thread;
 } thread_t;
 
 // system_t contains a list of all threads running and a pointer to the
@@ -116,7 +115,7 @@ void os_init();
 void create_thread(uint16_t address, void* args, uint16_t stack_size);
 
 /*
- * Calls context switch to enable interrupts
+ * Starts the os
  */
 void os_start();
 
@@ -125,6 +124,12 @@ void os_start();
  * ETHREAD otherwise. 
  */
 uint8_t get_next_thread();
+
+/*
+ * Returns a pointer to |system_threads|. It is recommended to use the
+ * returned pointer as read-only
+ */
+system_t *get_system_stats();
 
 #endif
 

@@ -1,24 +1,22 @@
 #include <stdio.h>
 
-typedef enum {
-   false = 0, true = 1
-} boolean;
+void func() {
+}
 
 int main() {
-   printf("false: : %d\n", false);
-   printf("true: : %d\n", true);
+   int *ptr = malloc(5);
 
-   boolean x;
-   x = true;
-   printf("x when true: %d\n", x);
-   x = false;
-   printf("x when false: %d\n", x);
-   x = true;
+   printf("%p\n", func);
+   printf("%x\n", func);
 
-   if (x) {
-      printf("This is true");
-   }
+   int x = func;
+   printf("%x\n", x);
+
+   char *byte_ptr = &x;
+   printf("%x\n", *byte_ptr++);
+   printf("%x\n", *byte_ptr++);
+   printf("%x\n", *byte_ptr++);
+
 
    return 0;
 }
-

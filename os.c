@@ -2,12 +2,9 @@
 #include "globals.h"
 
 #define DEBUG 0
-#define DEBUG_CS 1
 
-#define PRINT_ITER 1
-
-#if DEBUG_CS
-   static volatile int count = 1;
+#if DEBUG
+   static volatile int row = 1;
 #endif
 
 // global system_t variable to track register contents belonging to threads
@@ -22,17 +19,20 @@ ISR(TIMER0_COMPA_vect) {
    asm volatile ("" : : : "r18", "r19", "r20", "r21", "r22", "r23", "r24", \
                  "r25", "r26", "r27", "r30", "r31");                        
 
-   uint8_t old_id = system_threads.current_thread;
-   uint8_t new_id = get_next_thread();
+   volatile uint8_t old_id = system_threads.current_thread;
+   volatile uint8_t new_id = system_threads.current_thread = get_next_thread();
 
-   uint8_t *old_tos = system_threads.thread_list[old_id].tos = SP + 1;
+   volatile thread_t *old_thread = &system_threads.thread_list[old_id];
+   volatile thread_t *new_thread = &system_threads.thread_list[new_id];
+
+   old_thread->tos = SP - M_OFFSET - 1;
+   old_thread->stack_usage = old_thread->base - old_thread->tos + 1;
 
    if (old_id == new_id)
-      context_switch(old_tos - M_OFFSET - PC_OFFSET, old_tos);
-   else {
-      uint8_t *new_tos = system_threads.thread_list[new_id].tos;
-      context_switch(new_tos, old_tos);
-   }
+      context_switch(SP - M_OFFSET - PC_OFFSET, SP - PC_OFFSET);
+   else 
+      context_switch(system_threads.thread_list[new_id].tos - 1, 
+       SP - PC_OFFSET);
 }
 
 //Call this to start the system timer interrupt
@@ -58,25 +58,7 @@ void start_system_timer() {
  * |old_tp| and |new_tp| point to the same thread stack. 
  */
 __attribute__((naked)) void context_switch(uint16_t* new_tp, uint16_t* old_tp) {
-// TODO move all C code out of here
-#if DEBUG_CS
-   if (count == PRINT_ITER) {
-      set_cursor(5, 1);
-      print_string("SP position before assigning old_tp: ");
-      print_int(SP);
-   }
-#endif
-
-   SP = (uint8_t *)old_tp - PC_OFFSET - 1;
-
-#if DEBUG_CS
-   if (count == PRINT_ITER) {
-      set_cursor(6, 1);
-      print_string("SP position after assigning old_tp: ");
-      print_int(SP);
-   }
-#endif
-
+   SP = old_tp;
    asm volatile("push r2");
    asm volatile("push r3");
    asm volatile("push r4");
@@ -96,65 +78,7 @@ __attribute__((naked)) void context_switch(uint16_t* new_tp, uint16_t* old_tp) {
    asm volatile("push r28");
    asm volatile("push r29");
 
-#if DEBUG_CS
-   if (count == PRINT_ITER) {
-      set_cursor(7, 1);
-      print_string("SP position after pushing: ");
-      print_int(SP);
-   }
-#endif
-
-   // update current thread's stack |tos| to now
-   thread_t *curr_thread = 
-    &system_threads.thread_list[system_threads.current_thread];
-   curr_thread->tos = SP + 1;
-   curr_thread->stack_usage = curr_thread->base - curr_thread->tos + 1; 
-
-   // switch SP to |new_tp|
-   SP = (uint8_t *)new_tp - 1;
-
-   // check if SP is within current thread's stack or next thread's stack
-   // and update |tos| and |stack_usage| accordingly to how they would be
-   // at the exit of context_switch()
-   uint8_t curr_id = system_threads.current_thread;
-   uint8_t next_id = get_next_thread();
-
-   if (system_threads.thread_list[next_id].base > SP &&  // next thread
-    system_threads.thread_list[next_id].end <= SP) {   
-      curr_thread = &system_threads.thread_list[next_id];      
-      curr_thread->tos = SP + M_OFFSET + PC_OFFSET + 1;
-      system_threads.current_thread = curr_id = next_id;
-      curr_thread->stack_usage = curr_thread->base - curr_thread->tos + 1;
-   }
-   else if (system_threads.thread_list[curr_id].base > SP &&   // same thread
-    system_threads.thread_list[curr_id].end <= SP) {
-      curr_thread = &system_threads.thread_list[curr_id];
-      curr_thread->tos = SP + M_OFFSET + PC_OFFSET + 1;
-      curr_thread->stack_usage = curr_thread->base - curr_thread->tos + 1;
-   }
-
-#if DEBUG_CS
-   if (count == PRINT_ITER) {
-      set_cursor(8, 1);
-      print_string("SP position after switching to new_tp: ");
-      print_int(SP);
-
-      set_cursor(9, 1);
-      print_string("base address for stats: ");
-      print_int(system_threads.thread_list[1].base);
-      set_cursor(10, 1);
-      print_string("end address for stats: ");
-      print_int(system_threads.thread_list[1].end);
-      
-      set_cursor(11, 1);
-      print_string("base address for blink: ");
-      print_int(system_threads.thread_list[0].base);
-      set_cursor(12, 1);
-      print_string("end address for blink: ");
-      print_int(system_threads.thread_list[0].end);
-   }
-#endif
-
+   SP = new_tp;
    asm volatile("pop r29");
    asm volatile("pop r28");
    asm volatile("pop r17");
@@ -173,50 +97,7 @@ __attribute__((naked)) void context_switch(uint16_t* new_tp, uint16_t* old_tp) {
    asm volatile("pop r4");
    asm volatile("pop r3");
    asm volatile("pop r2");
-
-#if DEBUG_CS
-   curr_thread = &system_threads.thread_list[0];
-   if (count++ == PRINT_ITER) {
-      set_cursor(13, 1);
-      print_string("Printing out SP before return: ");
-      print_int(SP);
-      set_cursor(14, 1);
-      print_string("tos of blink thread stack: ");
-      print_int(system_threads.thread_list[0].tos);
-      set_cursor(15, 1);
-      print_string("tos of stats thread stack: ");
-      print_int(system_threads.thread_list[1].tos);
-      set_cursor(16, 1);
-      print_string("stack usage of blink thread stack: ");
-      print_int(system_threads.thread_list[0].stack_usage);
-      set_cursor(17, 1);
-      print_string("stack usage of stats thread stack: ");
-      print_int(system_threads.thread_list[1].stack_usage);
-      set_cursor(18, 1);
-      print_string("curr_thread->thread_id: ");
-      print_int(curr_thread->thread_id);
-      set_cursor(19, 1);
-      print_string("curr_thread->new_thread: ");
-      print_int(curr_thread->new_thread);
- 
-      exit(0);
-   }
-#endif
-
-   // && curr_thread->thread_id) {
-   if (system_threads.thread_list[system_threads.current_thread].new_thread) {
-      system_threads.thread_list[system_threads.current_thread].new_thread = false;
-
-#if DEBUG_CS
-      if (count++ == PRINT_ITER) {
-         set_cursor(20, 1);
-         print_string("getting here in cs");
-         exit(0);
-      }
-#endif
-      thread_start();
-   }
-
+   
    asm volatile("ret");
 }
 
@@ -225,8 +106,7 @@ __attribute__((naked)) void context_switch(uint16_t* new_tp, uint16_t* old_tp) {
  */
 __attribute__((naked)) void thread_start(void) {
    sei(); //enable interrupts - leave as the first statement  
-   SP += PC_OFFSET;
-   asm volatile("ret");
+   asm volatile("ijmp");
 }
 
 void os_init() {
@@ -245,6 +125,7 @@ void create_thread(uint16_t address, void *args, uint16_t stack_size) {
    int idx;
    thread_t *open_thread;
    uint8_t *byte_ptr;
+   uint16_t thread_start_addr = thread_start;
 
    // look for an inactive thread
    for (idx = 0; idx < MAX_THREADS && 
@@ -266,17 +147,53 @@ void create_thread(uint16_t address, void *args, uint16_t stack_size) {
    // end represents the top of the stack
    open_thread->end = malloc(stack_size);
    open_thread->base = open_thread->end + stack_size - 1;
-   open_thread->tos = open_thread->base - 1;
-   open_thread->args = args;
+   open_thread->tos = open_thread->base;
    open_thread->active = true;
-   open_thread->new_thread = true;
 
    ++system_threads.active_threads_count;
 
+   // store thread_start() address, |address|, and |*arg| in big endian
+   byte_ptr = &thread_start_addr;
+   *open_thread->tos-- = *byte_ptr++;
+   *open_thread->tos-- = *byte_ptr;
    byte_ptr = &address;
-   open_thread->tos[0] = byte_ptr[1];  // storing address in big endian format
-   open_thread->tos[1] = byte_ptr[0];  // storing address in big endian format
-   open_thread->tos -= M_OFFSET; // simulate pushing registers
+   *open_thread->tos-- = *byte_ptr++;
+   *open_thread->tos-- = *byte_ptr;
+   byte_ptr = args;
+   
+   for (idx = 0; idx < 15; idx++)
+      *open_thread->tos-- = *byte_ptr++;
+   *open_thread->tos = *byte_ptr;
+
+#if DEBUG
+   /*
+   set_cursor(row++, 1);
+   print_string("stack: ");
+   for (idx = 0; idx >= -10; idx--) {
+      set_cursor(row++, 1);
+      print_hex(open_thread->base[idx]);
+   }
+   */
+
+   /*
+   set_cursor(row++, 1);
+   print_string("In create_thread");
+
+   set_cursor(row++, 1);
+   print_string("current tos position: ");
+   print_int(open_thread->tos);
+
+   set_cursor(row++, 1);
+   print_string("base: ");
+   print_int(open_thread->base);
+   set_cursor(row++, 1);
+   print_string("end: ");
+   print_int(open_thread->end);
+
+   set_cursor(row++, 1);
+   print_string("Leaving create_thread");
+   */
+#endif
 }
 
 void os_start() {
@@ -287,15 +204,27 @@ void os_start() {
       return;
    }
 
-   thread_t *curr_thread = 
+   volatile thread_t *curr_thread = 
     &system_threads.thread_list[system_threads.current_thread];
 
-   curr_thread->tos += M_OFFSET; // simulate popping off registers
-   SP = curr_thread->tos - 1; // setting up SP for context_switch
-   context_switch(curr_thread->tos - M_OFFSET - PC_OFFSET, curr_thread->tos);
+   // set up SP for context_switch call, position tos to expected
+   // position after context_switch call is done, update stats,
+   // and start system timer
+   curr_thread->tos += M_OFFSET - PC_OFFSET - ARGS; 
+   SP = curr_thread->tos - 1;
+   curr_thread->tos = curr_thread->base + 1;
+   curr_thread->stack_usage = 0;
+
+   // put function args into r25 and r24 
+   asm volatile("pop r25"); 
+   asm volatile("pop r24"); 
+
+   // put function address into Z register
+   asm volatile("pop r31");
+   asm volatile("pop r30");
 
    start_system_timer();
-   thread_start();
+   context_switch(SP - M_OFFSET, SP);
 }
 
 uint8_t get_next_thread() {
@@ -318,4 +247,8 @@ uint8_t get_next_thread() {
    }
 
    return next;
+}
+
+system_t *get_system_stats() {
+   return &system_threads;
 }

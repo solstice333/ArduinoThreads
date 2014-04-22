@@ -7,7 +7,7 @@
 /*
  * Blinks the on-board LED for |t| milliseconds
  */
-void blink(int t);
+void blink(uint16_t t);
 
 /*
  * Sends "Hello " to the host machine which can be seen with the screen 
@@ -17,20 +17,20 @@ void blink(int t);
 void stats();
 
 int main() {
-   int t = 500;   // arg for blink
+   uint16_t t = 500;   // arg for blink
 
    serial_init();
 
    os_init();
    create_thread(blink, &t, sizeof(regs_context_switch) + 
     sizeof(regs_interrupt) + sizeof(t));
-   create_thread(stats, NULL, sizeof(regs_context_switch) +
-    sizeof(regs_interrupt)); 
+   // create_thread(stats, NULL, sizeof(regs_context_switch) +
+    // sizeof(regs_interrupt)); 
    os_start();
    return 0;
 }
 
-void blink(int t) {
+void blink(uint16_t t) {
    int i;
 
    while (1) {
@@ -48,8 +48,11 @@ void blink(int t) {
 
 void stats() {
    serial_init();
+   system_t *st_ptr = get_system_stats();
+
    while (1) {
       _delay_ms(1000);
-      print_string("FooFooFoo ");
+      print_int(st_ptr->current_thread);
+      //print_string("foofoo");
    }
 }
