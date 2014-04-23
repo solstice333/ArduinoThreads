@@ -12,6 +12,8 @@
 #define ARGS 2
 #define ETHREAD 255
 #define INIT_SIZE 20
+#define REMAINING 15
+#define GARBAGE_SIZE 32
 
 typedef enum {
    false, true

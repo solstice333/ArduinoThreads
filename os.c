@@ -1,16 +1,17 @@
 #include "os.h"
 #include "globals.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
-#define MAX 3
-
+   #define MAX 3
    static volatile int row = 1;
 #endif
 
 // global system_t variable to track register contents belonging to threads
-static volatile system_t system_threads;
+static system_t system_threads;
+static uint8_t* os_start_garbage_base;
+static uint8_t* os_start_garbage_end;
 
 //This interrupt routine is automatically run every 10 milliseconds
 ISR(TIMER0_COMPA_vect) {
@@ -32,19 +33,12 @@ ISR(TIMER0_COMPA_vect) {
 
    if (old_id == new_id)
       context_switch(SP - M_OFFSET - PC_OFFSET, SP - PC_OFFSET);
-   else {
-      // TODO double check this tos with the base/end range
-      // problems with first interrupt transition from blink to stats
-
-
-
-
-
-
-
+   else
       context_switch(system_threads.thread_list[new_id].tos - 1, 
        SP - PC_OFFSET);
-   }
+
+   new_thread->tos += M_OFFSET + PC_OFFSET;
+   new_thread->stack_usage = new_thread->base - new_thread->tos + 1;
 }
 
 //Call this to start the system timer interrupt
@@ -70,7 +64,11 @@ void start_system_timer() {
  * |old_tp| and |new_tp| point to the same thread stack. 
  */
 __attribute__((naked)) void context_switch(uint16_t* new_tp, uint16_t* old_tp) {
-   SP = old_tp;
+   asm volatile("clr r31");
+   asm volatile("ldi r30, 0x5D");
+   asm volatile("st z+, r22");
+   asm volatile("st z, r23");
+
    asm volatile("push r2");
    asm volatile("push r3");
    asm volatile("push r4");
@@ -90,7 +88,20 @@ __attribute__((naked)) void context_switch(uint16_t* new_tp, uint16_t* old_tp) {
    asm volatile("push r28");
    asm volatile("push r29");
 
-   SP = new_tp;
+   asm volatile("ldi r30, 0x5D");
+   asm volatile("st z+, r24");
+   asm volatile("st z, r25");
+
+#if DEBUG
+   set_cursor(row++, 1);
+   print_string("SP: ");
+   print_int(SP);
+   set_cursor(row++, 1);
+   print_string("new_tp: ");
+   print_int(new_tp);
+   exit(0);
+#endif
+
    asm volatile("pop r29");
    asm volatile("pop r28");
    asm volatile("pop r17");
@@ -118,6 +129,12 @@ __attribute__((naked)) void context_switch(uint16_t* new_tp, uint16_t* old_tp) {
  */
 __attribute__((naked)) void thread_start(void) {
    sei(); //enable interrupts - leave as the first statement  
+   asm volatile("mov r30,r2");
+   asm volatile("mov r31,r3");
+   asm volatile("mov r25,r5");
+   asm volatile("mov r24,r4");
+   asm volatile("mov r23,r7");
+   asm volatile("mov r22,r6");
    asm volatile("ijmp");
 }
 
@@ -173,7 +190,7 @@ void create_thread(uint16_t address, void *args, uint16_t stack_size) {
    *open_thread->tos-- = *byte_ptr;
    byte_ptr = args;
    
-   for (idx = 0; idx < 15; idx++)
+   for (idx = 0; idx < REMAINING; idx++)
       *open_thread->tos-- = *byte_ptr++;
    *open_thread->tos = *byte_ptr;
 }
@@ -186,27 +203,26 @@ void os_start() {
       return;
    }
 
-   volatile thread_t *curr_thread = 
-    &system_threads.thread_list[system_threads.current_thread];
-
-   // set up SP for context_switch call, position tos to expected
-   // position after context_switch call is done, update stats,
-   // and start system timer
-   curr_thread->tos += M_OFFSET - PC_OFFSET - ARGS; 
-   SP = curr_thread->tos - 1;
-   curr_thread->tos = curr_thread->base + 1;
-   curr_thread->stack_usage = 0;
-
-   // put function args into r25 and r24 
-   asm volatile("pop r25"); 
-   asm volatile("pop r24"); 
-
-   // put function address into Z register
-   asm volatile("pop r31");
-   asm volatile("pop r30");
+#if DEBUG
+   set_cursor(row++, 1);
+   print_string("blink base: ");
+   print_int(system_threads.thread_list[system_threads.current_thread].base);
+   set_cursor(row++, 1);
+   print_string("blink end: ");
+   print_int(system_threads.thread_list[system_threads.current_thread].end);
+   set_cursor(row++, 1);
+   print_string("blink tos: ");
+   print_int(system_threads.thread_list[system_threads.current_thread].tos);
+#endif
 
    start_system_timer();
-   context_switch(SP - M_OFFSET, SP);
+
+   os_start_garbage_end = malloc(GARBAGE_SIZE);
+   os_start_garbage_base = os_start_garbage_end + GARBAGE_SIZE - 1;
+
+   context_switch(
+    system_threads.thread_list[system_threads.current_thread].tos - 1, 
+    os_start_garbage_base);
 }
 
 uint8_t get_next_thread() {
