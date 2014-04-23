@@ -17,15 +17,16 @@ void blink(uint16_t t);
 void stats();
 
 int main() {
+   uint8_t padding = 32;
    uint16_t t = 500;   // arg for blink
 
    serial_init();
 
    os_init();
    create_thread(blink, &t, sizeof(regs_context_switch) + 
-    sizeof(regs_interrupt) + sizeof(t));
+    sizeof(regs_interrupt) + sizeof(t) + padding);
    create_thread(stats, NULL, sizeof(regs_context_switch) +
-    sizeof(regs_interrupt)); 
+    sizeof(regs_interrupt) + padding); 
    os_start();
    return 0;
 }
