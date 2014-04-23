@@ -15,6 +15,7 @@
 #define REMAINING 15
 #define GARBAGE_SIZE 32
 
+// boolean data type for readability
 typedef enum {
    false, true
 } boolean;
@@ -52,7 +53,7 @@ typedef struct regs_context_switch {
 //used, but instead be sure to account for the size of this struct 
 //when allocating initial stack space
 typedef struct regs_interrupt {
-   uint8_t padding; //stack pointer is pointing to 1 byte below the top of the stack
+   uint8_t padding[16]; //stack pointer is pointing to 1 byte below the top of the stack
 
    //Registers that are pushed to the stack during an interrupt service routine
    uint8_t r31;
@@ -96,23 +97,15 @@ typedef struct system_t {
 } system_t;
 
 /*
- * Initialize the os by intializing |system_threads| 
- * variable and turning off interrupts until os_start() is called
+ * Initialize the os
  */
 void os_init();
 
 /*
- * Creates a thread by allocating space for a stack to store data belonging
- * to that thread and updates the static global variable |system_threads|. 
- * |address| is the pointer to the function to be ran as a thread. 
- * |args| is a pointer to the beginning of a continguous
- * block of memory that defines the arguments to be sent into the function
- * starting at |address|. For example if main() called create_thread and
- * int x and y were declared and initialized in main and then passed into 
- * func(int arg1, int arg2), then |args| would be &x. |stack_size| is 
- * the total size of the thread stack which is the total of 
- * sizeof(regs_context_switch), sizeof(regs_interrupt), and 
- * sizeof(<all arguments passed into function located at |address|>).
+ * Creates a thread given the starting address of the function to be ran on
+ * a separate thread |addresss|, the pointer to the first argument (stored
+ * contiguously on the runtime stack) |args|, and the |stack_size| given
+ * in bytes.
  */
 void create_thread(uint16_t address, void* args, uint16_t stack_size);
 
@@ -122,14 +115,13 @@ void create_thread(uint16_t address, void* args, uint16_t stack_size);
 void os_start();
 
 /*
- * Gets the next thread. Returns the thread id if successful. Returns
- * ETHREAD otherwise. 
+ * Gets the next thread. Returns the thread id of the next thread if 
+ * successful. Returns ETHREAD otherwise. 
  */
 uint8_t get_next_thread();
 
 /*
- * Returns a pointer to |system_threads|. It is recommended to use the
- * returned pointer as read-only
+ * Returns a pointer to |system_threads|. Use only as read-only
  */
 system_t *get_system_stats();
 

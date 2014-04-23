@@ -1,7 +1,7 @@
 #include "os.h"
 #include "globals.h"
 
-#define DEBUG 1
+#define DEBUG 0
 
 #if DEBUG
    static volatile int row = 1;
@@ -27,51 +27,14 @@ ISR(TIMER0_COMPA_vect) {
    volatile uint8_t new_id = system_threads.current_thread = get_next_thread();
 
    volatile thread_t *old_thread = &system_threads.thread_list[old_id];
-   volatile thread_t *new_thread = &system_threads.thread_list[new_id];
-
 
    old_thread->tos = *stack_ptr - M_OFFSET - 1;
    old_thread->stack_usage = old_thread->base - old_thread->tos + 1;
 
-#if DEBUG
-   if (old_id == 0) {
-      set_cursor(row++, 1);
-      print_string("old_id: ");
-      print_int(old_id);
-
-      set_cursor(row++, 1);
-      print_string("tos - 1: ");
-      print_int(system_threads.thread_list[new_id].tos - 1);
-
-      set_cursor(row++, 1);
-      print_string("sp: ");
-      print_int(*stack_ptr);
-   }
-#endif
+   // TODO update any system output information here. Use |system_threads|
 
    context_switch(system_threads.thread_list[new_id].tos - 1, 
     *stack_ptr - PC_OFFSET);
-
-#if DEBUG
-   if (old_id == 0) {
-      set_cursor(row++, 1);
-      print_string("old_id: ");
-      print_int(old_id);
-
-      set_cursor(row++, 1);
-      print_string("tos - 1: ");
-      print_int(system_threads.thread_list[new_id].tos - 1);
-
-      set_cursor(row++, 1);
-      print_string("sp: ");
-      print_int(*stack_ptr);
-
-      exit(0);
-   }
-#endif
-
-   new_thread->tos += M_OFFSET + PC_OFFSET;
-   new_thread->stack_usage = new_thread->base - new_thread->tos + 1;
 }
 
 //Call this to start the system timer interrupt
@@ -225,27 +188,6 @@ void os_start() {
       print_string("Error: No active thread can be found");
       return;
    }
-
-#if DEBUG
-   set_cursor(row++, 1);
-   print_string("blink base: ");
-   print_int(system_threads.thread_list[0].base);
-   set_cursor(row++, 1);
-   print_string("blink end: ");
-   print_int(system_threads.thread_list[0].end);
-   set_cursor(row++, 1);
-   print_string("blink tos: ");
-   print_int(system_threads.thread_list[0].tos);
-   set_cursor(row++, 1);
-   print_string("stats base: ");
-   print_int(system_threads.thread_list[1].base);
-   set_cursor(row++, 1);
-   print_string("stats end: ");
-   print_int(system_threads.thread_list[1].end);
-   set_cursor(row++, 1);
-   print_string("stats tos: ");
-   print_int(system_threads.thread_list[1].tos);
-#endif
 
    start_system_timer();
 
