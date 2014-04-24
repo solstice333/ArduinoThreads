@@ -1,5 +1,6 @@
 #include "os.h"
 #include "globals.h"
+#include <util/delay.h>
 
 #define DEBUG 0
 
@@ -15,24 +16,37 @@ static uint8_t* os_start_garbage_end;
 
 //This interrupt routine is automatically run every 10 milliseconds
 ISR(TIMER0_COMPA_vect) {
-   //The following statement tells GCC that it can use registers r18-r27, 
-   //and r30-31 for this interrupt routine.  These registers (along with
-   //r0 and r1) will automatically be pushed and popped by this interrupt 
-   // routine.
-   asm volatile ("" : : : "r18", "r19", "r20", "r21", "r22", "r23", "r24", \
-                 "r25", "r26", "r27", "r30", "r31");                        
+   
+
+   system_threads.uptime += INTERRUPT_TIME;
+   system_threads.numInterrupts++;
+    
 
    volatile uint16_t *stack_ptr = 0x5D;
    volatile uint8_t old_id = system_threads.current_thread;
-   volatile uint8_t new_id = system_threads.current_thread = get_next_thread();
+   volatile uint8_t new_id = system_threads.current_thread = 
+    get_next_thread();
 
    volatile thread_t *old_thread = &system_threads.thread_list[old_id];
-
+   
+   #if DEBUG
+      set_cursor(1, 1);
+      print_int32(system_threads.numInterrupts);
+      _delay_ms(1000);
+    clear_screen();
+   #endif
    old_thread->tos = *stack_ptr - M_OFFSET - 1;
    old_thread->stack_usage = old_thread->base - old_thread->tos + 1;
+    
+   //The following statement tells GCC that it can use registers r18-r27,
+   //and r30-31 for this interrupt routine.  These registers (along with
+   //r0 and r1) will automatically be pushed and popped by this interrupt
+   // routine.
+    
+   asm volatile ("" : : : "r18", "r19", "r20", "r21", "r22", "r23", "r24", \
+                  "r25", "r26", "r27", "r30", "r31");
 
    // TODO update any system output information here. Use |system_threads|
-   // new_thread->stack_usage = 0 next?
 
    context_switch(system_threads.thread_list[new_id].tos - 1, 
     *stack_ptr - PC_OFFSET);
@@ -134,6 +148,7 @@ void os_init() {
 
    system_threads.active_threads_count = 0;
    system_threads.uptime = 0;
+   system_threads.numInterrupts = 0;
    cli();
 }
 

@@ -14,6 +14,8 @@
 #define INIT_SIZE 20
 #define REMAINING 15
 #define GARBAGE_SIZE 32
+#define INTERRUPT_TIME 10 //10 ms
+#define MS_TO_SEC 1000
 
 // boolean data type for readability
 typedef enum {
@@ -93,6 +95,7 @@ typedef struct system_t {
    thread_t thread_list[MAX_THREADS];
    uint8_t active_threads_count;
    uint8_t current_thread; 
+   uint32_t numInterrupts;
    uint32_t uptime;
 } system_t;
 
