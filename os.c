@@ -32,6 +32,7 @@ ISR(TIMER0_COMPA_vect) {
    old_thread->stack_usage = old_thread->base - old_thread->tos + 1;
 
    // TODO update any system output information here. Use |system_threads|
+   // new_thread->stack_usage = 0 next?
 
    context_switch(system_threads.thread_list[new_id].tos - 1, 
     *stack_ptr - PC_OFFSET);
