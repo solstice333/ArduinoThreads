@@ -36,18 +36,13 @@ int main() {
 }
 
 void blink(uint16_t t) {
-   int i;
+   DDRB |= 1 << 5;
 
    while (1) {
-      DDRB |= 1 << 5;
       PORTB &= ~(1 << 5);
-
-      for (i = 0; i < t; i++)
-         _delay_ms(1);
-
-      DDRB |= 1 << 5;
+      _delay_ms(500);
       PORTB |= 1 << 5;
-      _delay_ms(1000);
+      _delay_ms(500);
    }
 }
 
