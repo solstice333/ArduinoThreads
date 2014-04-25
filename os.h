@@ -14,6 +14,7 @@
 #define INIT_SIZE 20
 #define REMAINING 15
 #define GARBAGE_SIZE 32
+#define SEC 100
 
 // boolean data type for readability
 typedef enum {
@@ -79,7 +80,7 @@ typedef struct regs_interrupt {
 typedef struct thread_t {
    uint8_t thread_id;
    uint16_t thread_pc;
-   uint16_t stack_usage;
+   uint8_t stack_usage;
    uint16_t stack_size;
    uint8_t *tos;
    uint8_t *base;
@@ -93,7 +94,10 @@ typedef struct system_t {
    thread_t thread_list[MAX_THREADS];
    uint8_t active_threads_count;
    uint8_t current_thread; 
-   uint32_t uptime;
+   uint32_t interrupts;
+   uint32_t uptime_s;
+   uint8_t interrupts_per_sec;
+   uint8_t num_threads;
 } system_t;
 
 /*

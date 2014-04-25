@@ -1,7 +1,7 @@
 #include "os.h"
 #include "globals.h"
 
-#define DEBUG 0
+#define DEBUG 1
 
 #if DEBUG
    static volatile int row = 1;
@@ -10,8 +10,8 @@
 
 // global system_t variable to track register contents belonging to threads
 static volatile system_t system_threads;
-static uint8_t* os_start_garbage_base;
-static uint8_t* os_start_garbage_end;
+static volatile uint8_t* os_start_garbage_base;
+static volatile uint8_t* os_start_garbage_end;
 
 //This interrupt routine is automatically run every 10 milliseconds
 ISR(TIMER0_COMPA_vect) {
@@ -27,11 +27,28 @@ ISR(TIMER0_COMPA_vect) {
    volatile uint8_t new_id = system_threads.current_thread = get_next_thread();
 
    volatile thread_t *old_thread = &system_threads.thread_list[old_id];
+   volatile thread_t *new_thread = &system_threads.thread_list[new_id];
 
    old_thread->tos = *stack_ptr - M_OFFSET - 1;
    old_thread->stack_usage = old_thread->base - old_thread->tos + 1;
+   new_thread->stack_usage = old_thread->base - *stack_ptr;
 
+#if DEBUG
    // TODO update any system output information here. Use |system_threads|
+
+   system_threads.interrupts++;
+   if (!(system_threads.interrupts % SEC)) {
+      ++system_threads.uptime_s;
+      system_threads.interrupts_per_sec = SEC;
+
+      int i;
+      for (i = 0, system_threads.num_threads = 0; 
+       i < MAX_THREADS; i++) {
+         if (system_threads.thread_list[i].active)
+            ++system_threads.num_threads; 
+      }
+   }
+#endif
 
    context_switch(system_threads.thread_list[new_id].tos - 1, 
     *stack_ptr - PC_OFFSET);
@@ -132,7 +149,11 @@ void os_init() {
       system_threads.thread_list[i].active = false;
 
    system_threads.active_threads_count = 0;
-   system_threads.uptime = 0;
+   system_threads.interrupts = 0;
+   system_threads.uptime_s = 0;
+   system_threads.interrupts_per_sec = 0;
+   system_threads.num_threads = 0;
+
    cli();
 }
 
