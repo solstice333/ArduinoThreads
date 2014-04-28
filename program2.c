@@ -4,10 +4,9 @@
 #include "globals.h"
 #include "os.h"
 
-#define DEBUG 1
-
 #define TOTAL_COLORS 7
 #define COL_WIDTH 30
+#define FACTOR 4
 
 /*
  * Blinks the on-board LED for |t| milliseconds
@@ -23,13 +22,12 @@ void stats();
 int main() {
    uint16_t t = 500;   // arg for blink
 
-   serial_init();
    os_init();
 
-   create_thread(stats, NULL, sizeof(regs_context_switch) +
-    sizeof(regs_interrupt)); 
-   create_thread(blink, &t, sizeof(regs_context_switch) + 
-    sizeof(regs_interrupt) + sizeof(t));
+   create_thread(stats, NULL, FACTOR * (sizeof(regs_context_switch) +
+    sizeof(regs_interrupt))); 
+   create_thread(blink, &t, FACTOR * (sizeof(regs_context_switch) + 
+    sizeof(regs_interrupt) + sizeof(t)));
 
    os_start();
    return 0;
@@ -50,10 +48,11 @@ void stats() {
    system_t *sys_threads = get_system_stats();
    serial_init();
 
-   while (1) {
-      _delay_ms(1000);
+   clear_screen();
 
-#if DEBUG
+   while (1) {
+      _delay_ms(500);
+
       set_color(WHITE);
 
       set_cursor(1, 1);
@@ -109,9 +108,5 @@ void stats() {
             print_hex(sys_threads->thread_list[i].end);
          }
       }
-#else
-      print_string("foofoo ");
-#endif
-
    }
 }

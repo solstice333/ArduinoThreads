@@ -1,13 +1,6 @@
 #include "os.h"
 #include "globals.h"
 
-#define DEBUG 1
-
-#if DEBUG
-   static volatile int row = 1;
-   static volatile int count = 1;
-#endif
-
 // global system_t variable to track register contents belonging to threads
 static volatile system_t system_threads;
 static volatile uint8_t* os_start_garbage_base;
@@ -33,9 +26,6 @@ ISR(TIMER0_COMPA_vect) {
    old_thread->stack_usage = old_thread->base - old_thread->tos + 1;
    new_thread->stack_usage = old_thread->base - *stack_ptr;
 
-#if DEBUG
-   // TODO update any system output information here. Use |system_threads|
-
    system_threads.interrupts++;
    if (!(system_threads.interrupts % SEC)) {
       ++system_threads.uptime_s;
@@ -48,7 +38,6 @@ ISR(TIMER0_COMPA_vect) {
             ++system_threads.num_threads; 
       }
    }
-#endif
 
    context_switch(system_threads.thread_list[new_id].tos - 1, 
     *stack_ptr - PC_OFFSET);

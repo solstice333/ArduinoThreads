@@ -109,7 +109,9 @@ void os_init();
  * Creates a thread given the starting address of the function to be ran on
  * a separate thread |addresss|, the pointer to the first argument (stored
  * contiguously on the runtime stack) |args|, and the |stack_size| given
- * in bytes.
+ * in bytes. |stack_size| needs to be at least sizeof(regs_context_switch) + 
+ * sizeof(regs_interrupt) + sizeof(<any parameters belonging to the thread
+ * function>), all multiplied by 4.
  */
 void create_thread(uint16_t address, void* args, uint16_t stack_size);
 
