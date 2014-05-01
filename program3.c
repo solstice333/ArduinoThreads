@@ -6,7 +6,7 @@
 
 #define TOTAL_COLORS 7
 #define COL_WIDTH 30
-#define FACTOR 4
+#define MULTIPLIER 4
 
 /*
  * Blinks the on-board LED for |t| milliseconds
@@ -24,10 +24,10 @@ int main() {
 
    os_init();
 
-   create_thread(stats, NULL, FACTOR * (sizeof(regs_context_switch) +
-    sizeof(regs_interrupt))); 
-   create_thread(blink, &t, FACTOR * (sizeof(regs_context_switch) + 
+   create_thread(blink, &t, MULTIPLIER * (sizeof(regs_context_switch) + 
     sizeof(regs_interrupt) + sizeof(t)));
+   create_thread(stats, NULL, MULTIPLIER * (sizeof(regs_context_switch) +
+    sizeof(regs_interrupt))); 
 
    os_start();
    return 0;

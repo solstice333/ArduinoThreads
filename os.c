@@ -27,20 +27,23 @@ ISR(TIMER0_COMPA_vect) {
    new_thread->stack_usage = old_thread->base - *stack_ptr;
 
    system_threads.interrupts++;
-   if (!(system_threads.interrupts % SEC)) {
-      ++system_threads.uptime_s;
-      system_threads.interrupts_per_sec = SEC;
-
-      int i;
-      for (i = 0, system_threads.num_threads = 0; 
-       i < MAX_THREADS; i++) {
-         if (system_threads.thread_list[i].active)
-            ++system_threads.num_threads; 
-      }
-   }
 
    context_switch(system_threads.thread_list[new_id].tos - 1, 
     *stack_ptr - PC_OFFSET);
+}
+
+ISR(TIMER1_COMPA_vect) {
+   //This interrupt routine is run once a second
+   //The 2 interrupt routines will not interrupt each other
+   ++system_threads.uptime_s;
+   system_threads.interrupts_per_sec = SEC;
+
+   int i;
+   for (i = 0, system_threads.num_threads = 0; 
+    i < MAX_THREADS; i++) {
+      if (system_threads.thread_list[i].active)
+         ++system_threads.num_threads; 
+   }
 }
 
 //Call this to start the system timer interrupt
@@ -51,6 +54,11 @@ void start_system_timer() {
    //Generate timer interrupt every ~10 milliseconds
    TCCR0B |= _BV(CS02) | _BV(CS00);    //prescalar /1024
    OCR0A = 156;             //generate interrupt every 9.98 milliseconds
+
+    //start timer 1 to generate interrupt every 1 second
+   OCR1A = 15625;
+   TIMSK1 |= _BV(OCIE1A);  //interrupt on compare
+   TCCR1B |= _BV(WGM12) | _BV(CS12) | _BV(CS10); //slowest prescalar /1024
 }
 
 /*
