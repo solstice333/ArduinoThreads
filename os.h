@@ -16,10 +16,10 @@
 #define GARBAGE_SIZE 32
 #define SEC 100
 
-// boolean data type for readability
+// enum for thread states
 typedef enum {
-   false, true
-} boolean;
+   THREAD_RUNNING, THREAD_READY, THREAD_SLEEPING, THREAD_WAITING 
+} thread_state;
 
 //This structure defines the register order pushed to the stack on a
 //system context switch.
@@ -85,7 +85,9 @@ typedef struct thread_t {
    uint8_t *tos;
    uint8_t *base;
    uint8_t *end;
-   boolean active;
+   bool active;
+   thread_state state;
+   uint16_t interrupts_slept;
 } thread_t;
 
 // system_t contains a list of all threads running and a pointer to the

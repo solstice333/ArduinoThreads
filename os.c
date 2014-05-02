@@ -1,6 +1,8 @@
 #include "os.h"
 #include "globals.h"
 
+#define DEBUG 1
+
 // global system_t variable to track register contents belonging to threads
 static volatile system_t system_threads;
 static volatile uint8_t* os_start_garbage_base;
@@ -16,18 +18,26 @@ ISR(TIMER0_COMPA_vect) {
                  "r25", "r26", "r27", "r30", "r31");                        
 
    volatile uint16_t *stack_ptr = 0x5D;
+
    volatile uint8_t old_id = system_threads.current_thread;
    volatile uint8_t new_id = system_threads.current_thread = get_next_thread();
 
    volatile thread_t *old_thread = &system_threads.thread_list[old_id];
    volatile thread_t *new_thread = &system_threads.thread_list[new_id];
 
+   // old thread updates
    old_thread->tos = *stack_ptr - M_OFFSET - 1;
    old_thread->stack_usage = old_thread->base - old_thread->tos + 1;
-   new_thread->stack_usage = old_thread->base - *stack_ptr;
+   old_thread->state = THREAD_WAITING;
 
+   // new thread updates
+   new_thread->stack_usage = old_thread->base - *stack_ptr;
+   new_thread->state = THREAD_RUNNING;
+
+   // increment interrupts
    system_threads.interrupts++;
 
+   // context switch
    context_switch(system_threads.thread_list[new_id].tos - 1, 
     *stack_ptr - PC_OFFSET);
 }
@@ -170,11 +180,13 @@ void create_thread(uint16_t address, void *args, uint16_t stack_size) {
       return;
    }
 
+   // set some fields for the open thread
    open_thread = &system_threads.thread_list[idx];
    open_thread->thread_id = idx;
    open_thread->thread_pc = address;
    open_thread->stack_usage = INIT_SIZE;
    open_thread->stack_size = stack_size;
+   open_thread->state = THREAD_READY;
    
    // base represents the bottom of the stack and 
    // end represents the top of the stack
@@ -183,6 +195,7 @@ void create_thread(uint16_t address, void *args, uint16_t stack_size) {
    open_thread->tos = open_thread->base;
    open_thread->active = true;
 
+   // increment number of active threads
    ++system_threads.active_threads_count;
 
    // store thread_start() address, |address|, and |*arg| in big endian
@@ -235,6 +248,10 @@ uint8_t get_next_thread() {
       system_threads.current_thread = save;
       return ETHREAD;
    }
+
+   system_threads.thread_list[system_threads.current_thread].state = 
+    THREAD_WAITING;
+   system_threads.thread_list[next].state = THREAD_READY;
 
    return next;
 }

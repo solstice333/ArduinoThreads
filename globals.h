@@ -16,6 +16,11 @@
 
 #include <avr/io.h>
 
+// boolean data type for readability
+typedef enum {
+   false, true
+} bool;
+
 // Implemented in serial.c
 void serial_init();
 uint8_t byte_available();
