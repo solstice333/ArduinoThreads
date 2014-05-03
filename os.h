@@ -86,8 +86,8 @@ typedef struct thread_t {
    uint8_t *base;
    uint8_t *end;
    bool active;
-   thread_state state;
-   uint16_t interrupts_slept;
+   thread_state t_state;
+   uint16_t interrupt_slept;
 } thread_t;
 
 // system_t contains a list of all threads running and a pointer to the
@@ -101,6 +101,9 @@ typedef struct system_t {
    uint8_t interrupts_per_sec;
    uint8_t num_threads;
 } system_t;
+
+// global system_t variable to track register contents belonging to threads
+extern volatile system_t system_threads;
 
 /*
  * Initialize the os

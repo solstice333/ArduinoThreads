@@ -2,16 +2,17 @@
 #define SYNCHRO_H
 
 #include "globals.h"
+#include "queue.h"
 #include "os.h"
 
 typedef struct mutex_t {
    bool lock;
-   thread_t *waitlist[MAX_THREADS];
+   Queue *waitlist;
 } mutex_t;
 
-void mutex_init(struct mutex_t *m);
-void mutex_lock(struct mutex_t *m);
-void mutex_unlock(struct mutex_t *m);
+void mutex_init(mutex_t *m);
+void mutex_lock(mutex_t *m);
+void mutex_unlock(mutex_t *m);
 
 /*
 TODO implement semaphore_t

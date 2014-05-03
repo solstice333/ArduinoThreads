@@ -3,8 +3,7 @@
 
 #define DEBUG 1
 
-// global system_t variable to track register contents belonging to threads
-static volatile system_t system_threads;
+volatile system_t system_threads;
 static volatile uint8_t* os_start_garbage_base;
 static volatile uint8_t* os_start_garbage_end;
 
@@ -28,14 +27,25 @@ ISR(TIMER0_COMPA_vect) {
    // old thread updates
    old_thread->tos = *stack_ptr - M_OFFSET - 1;
    old_thread->stack_usage = old_thread->base - old_thread->tos + 1;
-   old_thread->state = THREAD_WAITING;
+   old_thread->t_state = THREAD_READY;
 
    // new thread updates
    new_thread->stack_usage = old_thread->base - *stack_ptr;
-   new_thread->state = THREAD_RUNNING;
+   new_thread->t_state = THREAD_RUNNING;
 
    // increment interrupts
    system_threads.interrupts++;
+
+#if DEBUG
+   int i;
+   for (i < 0; i < MAX_THREADS; i++) {
+      if (system_threads.thread_list[i].active && 
+       system_threads.thread_list[i].interrupt_slept) {
+         if (!--system_threads.thread_list[i].interrupt_slept)
+            system_threads.thread_list[i].t_state = THREAD_READY;
+      }
+   }
+#endif
 
    // context switch
    context_switch(system_threads.thread_list[new_id].tos - 1, 
@@ -186,7 +196,8 @@ void create_thread(uint16_t address, void *args, uint16_t stack_size) {
    open_thread->thread_pc = address;
    open_thread->stack_usage = INIT_SIZE;
    open_thread->stack_size = stack_size;
-   open_thread->state = THREAD_READY;
+   open_thread->t_state = THREAD_READY;
+   open_thread->interrupt_slept = 0;
    
    // base represents the bottom of the stack and 
    // end represents the top of the stack
@@ -239,7 +250,9 @@ uint8_t get_next_thread() {
 
    for (next = (system_threads.current_thread + 1) % MAX_THREADS;
     next != system_threads.current_thread && 
-    !system_threads.thread_list[next].active; 
+    !system_threads.thread_list[next].active ||
+    (system_threads.thread_list[next].t_state == THREAD_WAITING ||
+    system_threads.thread_list[next].t_state == THREAD_SLEEPING); 
     next = (next + 1) % MAX_THREADS) 
       ;
 
@@ -249,13 +262,19 @@ uint8_t get_next_thread() {
       return ETHREAD;
    }
 
-   system_threads.thread_list[system_threads.current_thread].state = 
-    THREAD_WAITING;
-   system_threads.thread_list[next].state = THREAD_READY;
-
+   system_threads.thread_list[next].t_state = THREAD_READY;
    return next;
 }
 
 system_t *get_system_stats() {
    return &system_threads;
 }
+
+#if DEBUG
+void thread_sleep(uint16_t ticks) {
+   system_threads.thread_list[system_threads.current_thread].interrupt_slept =
+    ticks;
+   system_threads.thread_list[system_threads.current_thread].t_state = 
+    THREAD_SLEEPING;
+}
+#endif
