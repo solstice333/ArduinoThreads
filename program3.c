@@ -6,7 +6,7 @@
 
 #define TOTAL_COLORS 7
 #define COL_WIDTH 30
-#define MULTIPLIER 4
+#define STACKSIZE 4 * (sizeof(regs_context_switch) + sizeof(regs_interrupt))
 
 /*
  * Blinks the on-board LED for |t| milliseconds
@@ -19,15 +19,19 @@ void blink(uint16_t t);
  */
 void stats();
 
+/*
+ * filler thread
+ */
+void filler();
+
 int main() {
    uint16_t t = 500;   // arg for blink
 
    os_init();
 
-   create_thread(blink, &t, MULTIPLIER * (sizeof(regs_context_switch) + 
-    sizeof(regs_interrupt) + sizeof(t)));
-   create_thread(stats, NULL, MULTIPLIER * (sizeof(regs_context_switch) +
-    sizeof(regs_interrupt))); 
+   create_thread(blink, &t, STACKSIZE + sizeof(t));
+   // create_thread(stats, NULL, STACKSIZE);
+   create_thread(filler, NULL, STACKSIZE);
 
    os_start();
    return 0;
@@ -37,10 +41,12 @@ void blink(uint16_t t) {
    DDRB |= 1 << 5;
 
    while (1) {
-      PORTB &= ~(1 << 5);
-      _delay_ms(500);
-      PORTB |= 1 << 5;
-      _delay_ms(500);
+      PORTB &= ~(1 << 5); // off
+      thread_sleep(50);
+      // _delay_ms(500);
+      PORTB |= 1 << 5;  // on
+      thread_sleep(50);
+      // _delay_ms(500);
    }
 }
 
@@ -109,4 +115,10 @@ void stats() {
          }
       }
    }
+}
+
+void filler() {
+   serial_init();
+   while (1)
+      print_string("foo ");
 }

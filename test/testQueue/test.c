@@ -80,7 +80,7 @@ int main() {
    printf("\n\nprinting queue (head wraps): \n\n");
    Queue_print(q, int);
 
-   printf("\n\nTry to pop past 0:\n\n");
+   // printf("\n\nTry to pop past 0:\n\n");
    val = Queue_pop(q);
    printf("popped value: %d\n", *val);
    free(val);
@@ -89,14 +89,19 @@ int main() {
    free(val);
    // val = Queue_pop(q);
    // printf("popped value: %d\n", *val); // should cause seg fault
+   // val = Queue_peek(q);
+   // printf("peeked value: %d\n", *val); // should cause seg fault
 
-   printf("\n\npeek: \n\n");
+   printf("\n\n push 10, 11, 12: \n\n");
    x = 10;
    Queue_push(q, &x); 
    x = 11;
    Queue_push(q, &x); 
    x = 12;
    Queue_push(q, &x); 
+
+   val = Queue_peek(q);
+   printf("peeked value: %d\n", *val);
 
    printf("\n\nprinting queue (head wraps): \n\n");
    Queue_print(q, int);

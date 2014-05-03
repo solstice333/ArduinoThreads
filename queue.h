@@ -6,7 +6,9 @@
 #include <string.h>
 #include "globals.h"
 
-// Queue struct
+/*
+ * Queue struct
+ */
 typedef struct Queue {
    void *queue;
    int head, tail;
@@ -24,21 +26,36 @@ Queue *Queue_create(int size, int element_size);
  */
 bool Queue_push(Queue *q, void *element);
 
-// Pop front element of queue |q|. User needs to free the returned element.
+/*
+ * Pop front element of queue |q|. User needs to free the returned element.
+* Returns 0 if queue is empty.
+ */
 void *Queue_pop(Queue *q);
 
-// Peek front element of queue |q|. User needs to free the returned element. 
+/*
+ * Peek front element of queue |q|. User needs to free the returned element. 
+ * Returns 0 if queue is empty.
+ */
 void *Queue_peek(Queue *q);
 
-// Get the number of elements inside the queue |q|
+/*
+ * Get the number of elements inside the queue |q|
+ */
 int Queue_size(Queue *q);
 
-// Check if queue |q| is empty. true if empty, false otherwise
+/* 
+ * Check if queue |q| is empty. true if empty, false otherwise
+ */
 bool Queue_empty(Queue *q);
 
-// Queue destructor. Destroys queue |q|
+/* 
+ * Queue destructor. Destroys queue |q|
+ */
 void Queue_destroy(Queue *q);
 
+/*
+ * Printing macro for debugging
+ */
 #define Queue_print(q, type) {\
    Queue *__q = (q);\
    int __i;\

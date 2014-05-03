@@ -136,4 +136,9 @@ uint8_t get_next_thread();
  */
 system_t *get_system_stats();
 
+/*
+ * Puts the thread to sleep for |ticks| number of interrupts
+ */
+void thread_sleep(uint16_t ticks);
+
 #endif
