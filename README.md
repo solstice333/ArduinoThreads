@@ -16,3 +16,9 @@ Notes:
 
 1. Double check the build command for the "program" target and make sure
 the -P argument points to the correct device/serial port
+
+2. There is instability in running only one thread due to the nature of how
+get_next_thread() works, in that if that single thread goes to sleep, 
+get_next_thread() will return ETHREAD with the assumption that there are no
+threads to run. One resolution to this is to create a filler thread that just
+spins until the sleeping thread wakes up.

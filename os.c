@@ -36,7 +36,6 @@ ISR(TIMER0_COMPA_vect) {
    // increment interrupts
    system_threads.interrupts++;
 
-#if DEBUG
    int i;
    for (i < 0; i < MAX_THREADS; i++) {
       if (system_threads.thread_list[i].active && 
@@ -45,7 +44,6 @@ ISR(TIMER0_COMPA_vect) {
             system_threads.thread_list[i].t_state = THREAD_READY;
       }
    }
-#endif
 
    // context switch
    context_switch(system_threads.thread_list[new_id].tos - 1, 
@@ -270,11 +268,33 @@ system_t *get_system_stats() {
    return &system_threads;
 }
 
-#if DEBUG
+static void yield() {
+   uint16_t *stack_ptr = 0x5D;
+
+   uint8_t old_id = system_threads.current_thread;
+   uint8_t new_id = system_threads.current_thread = get_next_thread();
+
+   thread_t *old_thread = &system_threads.thread_list[old_id];
+   thread_t *new_thread = &system_threads.thread_list[new_id];
+
+   // old thread updates
+   old_thread->tos = *stack_ptr - M_OFFSET - 1;
+   old_thread->stack_usage = old_thread->base - old_thread->tos + 1;
+
+   // new thread updates
+   new_thread->stack_usage = new_thread->base - new_thread->tos + 
+    M_OFFSET + PC_OFFSET;
+   new_thread->t_state = THREAD_RUNNING;
+
+   // context switch
+   context_switch(system_threads.thread_list[new_id].tos - 1, 
+    *stack_ptr - PC_OFFSET);
+}
+
 void thread_sleep(uint16_t ticks) {
    system_threads.thread_list[system_threads.current_thread].interrupt_slept =
     ticks;
    system_threads.thread_list[system_threads.current_thread].t_state = 
     THREAD_SLEEPING;
+   yield();
 }
-#endif

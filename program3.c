@@ -30,23 +30,22 @@ int main() {
    os_init();
 
    create_thread(blink, &t, STACKSIZE + sizeof(t));
-   // create_thread(stats, NULL, STACKSIZE);
-   create_thread(filler, NULL, STACKSIZE);
+   create_thread(stats, NULL, STACKSIZE);
+   // create_thread(filler, NULL, STACKSIZE);
 
    os_start();
    return 0;
 }
 
 void blink(uint16_t t) {
+   t = t/10;
    DDRB |= 1 << 5;
 
    while (1) {
       PORTB &= ~(1 << 5); // off
-      thread_sleep(50);
-      // _delay_ms(500);
+      thread_sleep(t);
       PORTB |= 1 << 5;  // on
-      thread_sleep(50);
-      // _delay_ms(500);
+      thread_sleep(t);
    }
 }
 
