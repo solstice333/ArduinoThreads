@@ -5,6 +5,7 @@
 #include "os.h"
 #include "synchro.h"
 
+#define DEBUG 1
 #define TOTAL_COLORS 7
 #define COL_WIDTH 30
 #define STACKSIZE 4 * (sizeof(regs_context_switch) + sizeof(regs_interrupt))
@@ -32,19 +33,26 @@ void blink(uint16_t t);
 void stats();
 
 /*
- * filler thread
+ * Filler thread. Use this as the default thread when no other threads are
+ * running. As of program 3, it is unsafe to run any thread without this
+ * filler thread function
  */
 void filler();
 
 /*
- * producer thread
+ * Producer thread
  */
 void producer();
 
 /*
- * consumer thread
+ * Consumer thread
  */
 void consumer();
+
+/*
+ * Prints any debug information
+ */
+void debug_print();
 
 int main() {
    uint16_t t = 500;   // arg for blink
@@ -60,6 +68,7 @@ int main() {
    create_thread(filler, NULL, STACKSIZE);
    create_thread(producer, NULL, STACKSIZE);
    create_thread(consumer, NULL, STACKSIZE);
+   create_thread(debug_print, NULL, STACKSIZE);
 
    os_start();
    return 0;
@@ -159,8 +168,9 @@ void producer() {
 
       buffer[rand() % BUF_SIZE] = rand() % 90 + 10;
 
+      thread_sleep(50);
       mutex_unlock(&buffer_lock);
-      _delay_ms(1000);
+      thread_sleep(50);
    }
 }
 
@@ -169,7 +179,9 @@ void consumer() {
       mutex_lock(&buffer_lock);
 
       set_cursor(2, 1);
-      print_string("Buffer contents: ");
+      print_string("Buffer contents ");
+      print_int(system_threads.uptime_s);
+      print_string(": ");
 
       int i;
       for (i = 0; i < BUF_SIZE; i++) {
@@ -177,7 +189,22 @@ void consumer() {
          print_string(" ");
       }
 
-      // mutex_unlock(&buffer_lock);
-      _delay_ms(1000);
+      thread_sleep(50);
+      mutex_unlock(&buffer_lock);
+      thread_sleep(50);
+
+   }
+}
+
+void debug_print() {
+   while (true) {
+      int i;
+      set_cursor(6, 1);
+      print_string("thread states: ");
+      for (i = 0; i < MAX_THREADS; i++) {
+         print_int(system_threads.thread_list[i].t_state); 
+         print_string(" ");
+      }
+      thread_sleep(20);
    }
 }
