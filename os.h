@@ -137,6 +137,12 @@ uint8_t get_next_thread();
 system_t *get_system_stats();
 
 /*
+ * Immediately calls context_switch to exit out of thread. Used when thread
+ * state transitions to THREAD_SLEEPING or THREAD_WAITING
+ */
+void yield();
+
+/*
  * Puts the thread to sleep for |ticks| number of interrupts
  */
 void thread_sleep(uint16_t ticks);

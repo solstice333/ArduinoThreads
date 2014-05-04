@@ -268,7 +268,7 @@ system_t *get_system_stats() {
    return &system_threads;
 }
 
-static void yield() {
+void yield() {
    uint16_t *stack_ptr = 0x5D;
 
    uint8_t old_id = system_threads.current_thread;

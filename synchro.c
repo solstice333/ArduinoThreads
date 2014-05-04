@@ -9,26 +9,30 @@ static bool test_and_set(bool *lock) {
    return rv;
 }
 
-static void acquire(bool *lock) {
-   while(test_and_set(lock)) {
-      system_threads.thread_list[system_threads.current_thread].t_state =
-       THREAD_WAITING;
-   }
-}
-
-static void release(bool *lock) {
-   *lock = false;
-}
-
 void mutex_init(mutex_t *m) {
-   m = malloc(sizeof(mutex_t));   
-   m->lock = 0;
+   m->lock = false;
    m->waitlist = Queue_create(8, sizeof(thread_t *));
 }
 
 void mutex_lock(mutex_t *m) {
-   while(test_and_set(m)) // acquire
-      ;
+   while(test_and_set(&m->lock)) {  // acquire
+      set_cursor(3, 1);
+      print_string("inside mutex_lock");
+
+      thread_t *this_thread = 
+       &system_threads.thread_list[system_threads.current_thread];
+
+      this_thread->t_state = THREAD_WAITING;
+      Queue_push(m->waitlist, &this_thread);
+      yield();
+   }
+}
+
+void mutex_unlock(mutex_t *m) {
+   m->lock = false;  // release
+   thread_t *next_thread = Queue_pop(m->waitlist);
+   next_thread->t_state = THREAD_READY;
+   free(next_thread);
 }
 
 #endif
