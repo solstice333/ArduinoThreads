@@ -7,7 +7,7 @@
 
 #define DEBUG 1
 #define TOTAL_COLORS 7
-#define COL_WIDTH 30
+#define COL_WIDTH 11
 #define STACKSIZE 4 * (sizeof(regs_context_switch) + sizeof(regs_interrupt))
 #define BUF_SIZE 5
 
@@ -60,12 +60,11 @@ int main() {
    sem_init(&empty, 1);
    sem_init(&full, 0);
 
-   // create_thread(blink, &t, STACKSIZE + sizeof(t));
-   // create_thread(stats, NULL, STACKSIZE);
+   create_thread(blink, &t, STACKSIZE + sizeof(t));
    create_thread(filler, NULL, STACKSIZE);
    create_thread(producer, NULL, STACKSIZE);
    create_thread(consumer, NULL, STACKSIZE);
-   create_thread(debug_print, NULL, STACKSIZE);
+   create_thread(stats, NULL, STACKSIZE);
 
    os_start();
    return 0;
@@ -88,8 +87,9 @@ void stats() {
    clear_screen();
 
    while (true) {
-      _delay_ms(500);
+      cli();
 
+      thread_sleep(50);
       set_color(WHITE);
 
       set_cursor(1, 1);
@@ -117,34 +117,73 @@ void stats() {
             set_color(i%TOTAL_COLORS + RED);
 
             set_cursor(8, col + i*COL_WIDTH);
-            print_string("Thread ID: ");
+            print_string("id: ");
             print_int(sys_threads->thread_list[i].thread_id); 
 
             set_cursor(9, col + i*COL_WIDTH);
-            print_string("Thread PC: 0x");
+            print_string("pc: 0x");
             print_hex(sys_threads->thread_list[i].thread_pc);
 
             set_cursor(10, col + i*COL_WIDTH);
-            print_string("Stack Usage: ");
+            print_string("usg: ");
             print_int(sys_threads->thread_list[i].stack_usage);
 
             set_cursor(11, col + i*COL_WIDTH);
-            print_string("Total Stack Size: ");
+            print_string("size: ");
             print_int(sys_threads->thread_list[i].stack_size);
 
             set_cursor(12, col + i*COL_WIDTH);
-            print_string("Current Top Of Stack: 0x");
+            print_string("tos: 0x");
             print_hex(sys_threads->thread_list[i].tos);
 
             set_cursor(13, col + i*COL_WIDTH);
-            print_string("Stack Base: 0x");
+            print_string("bs: 0x");
             print_hex(sys_threads->thread_list[i].base);
 
             set_cursor(14, col + i*COL_WIDTH);
-            print_string("Stack End: 0x");
+            print_string("end: 0x");
             print_hex(sys_threads->thread_list[i].end);
          }
       }
+
+      thread_t *id_wl;
+      set_color(WHITE);
+
+      set_cursor(18, 1);
+      print_string("thread id currently on buffer_lock waitlist: ");
+      if (Queue_empty(buffer_lock.waitlist))
+         print_string(" ");
+      else {
+         id_wl = Queue_peek(buffer_lock.waitlist);
+         print_int(id_wl->thread_id);
+      }
+
+      set_cursor(19, 1);
+      print_string("thread id currently on sem full waitlist: ");
+      if (Queue_empty(full.waitlist))
+         print_string(" ");
+      else {
+         id_wl = Queue_peek(full.waitlist);
+         print_int(id_wl->thread_id);
+      }
+
+      set_cursor(20, 1);
+      print_string("thread id currently on sem empty waitlist: ");
+      if (Queue_empty(empty.waitlist))
+         print_string(" ");
+      else {
+         id_wl = Queue_peek(empty.waitlist);
+         print_int(id_wl->thread_id);
+      }
+
+      set_cursor(21, 1);
+      print_string("thread states: ");
+      for (i = 0; i < MAX_THREADS; i++) {
+         print_int(system_threads.thread_list[i].t_state); 
+         print_string(" ");
+      }
+
+      sei();
    }
 }
 
@@ -160,9 +199,6 @@ void producer() {
       sem_wait(&empty);
       mutex_lock(&buffer_lock);
 
-      set_cursor(1, 1);
-      print_string("Writing to buffer ");
-      print_int(system_threads.uptime_s);
       buffer = rand() % 90 + 10;
 
       mutex_unlock(&buffer_lock);
@@ -177,62 +213,17 @@ void consumer() {
       sem_wait(&full);
       mutex_lock(&buffer_lock);
 
-      set_cursor(2, 1);
+      cli();
+      set_cursor(17, 1);
+      set_color(WHITE);
       print_string("Buffer contents ");
-      print_int(system_threads.uptime_s);
       print_string(": ");
       print_int(buffer);
+      sei();
 
       mutex_unlock(&buffer_lock);
       sem_signal(&empty);
 
       thread_sleep(100);
-   }
-}
-
-void debug_print() {
-   while (true) {
-      int i;
-      thread_t *id_wl;
-
-      cli();
-
-      set_cursor(5, 1);
-      print_string("thread id currently on buffer_lock waitlist: ");
-      if (Queue_empty(buffer_lock.waitlist))
-         print_string(" ");
-      else {
-         id_wl = Queue_peek(buffer_lock.waitlist);
-         print_int(id_wl->thread_id);
-      }
-
-      set_cursor(6, 1);
-      print_string("thread id currently on sem full waitlist: ");
-      if (Queue_empty(full.waitlist))
-         print_string(" ");
-      else {
-         id_wl = Queue_peek(full.waitlist);
-         print_int(id_wl->thread_id);
-      }
-
-      set_cursor(7, 1);
-      print_string("thread id currently on sem empty waitlist: ");
-      if (Queue_empty(empty.waitlist))
-         print_string(" ");
-      else {
-         id_wl = Queue_peek(empty.waitlist);
-         print_int(id_wl->thread_id);
-      }
-
-      set_cursor(8, 1);
-      print_string("thread states: ");
-      for (i = 0; i < MAX_THREADS; i++) {
-         print_int(system_threads.thread_list[i].t_state); 
-         print_string(" ");
-      }
-
-      sei();
-
-      thread_sleep(25);
    }
 }

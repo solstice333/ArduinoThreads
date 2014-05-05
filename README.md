@@ -22,3 +22,5 @@ get_next_thread() works. When running only one thread, if that thread goes to
 sleep, get_next_thread() will return ETHREAD with the assumption that there 
 are no threads to run and the system will deadlock. One resolution to this is 
 to create a filler thread that just spins until the sleeping thread wakes up.
+
+3. Do not use _delay_ms(). Use thread_sleep() instead
