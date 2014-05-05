@@ -159,6 +159,7 @@ __attribute__((naked)) void thread_start(void) {
 void os_init() {
    int i;
 
+   cli();
    system_threads.current_thread = ETHREAD;
    for (i = 0; i < MAX_THREADS; i++)
       system_threads.thread_list[i].active = false;
@@ -168,8 +169,6 @@ void os_init() {
    system_threads.uptime_s = 0;
    system_threads.interrupts_per_sec = 0;
    system_threads.num_threads = 0;
-
-   cli();
 }
 
 void create_thread(uint16_t address, void *args, uint16_t stack_size) {
@@ -268,11 +267,11 @@ system_t *get_system_stats() {
    return &system_threads;
 }
 
-void yield() {
+void yield(uint8_t next_thread) {
    uint16_t *stack_ptr = 0x5D;
 
    uint8_t old_id = system_threads.current_thread;
-   uint8_t new_id = system_threads.current_thread = get_next_thread();
+   uint8_t new_id = system_threads.current_thread = next_thread;
 
    thread_t *old_thread = &system_threads.thread_list[old_id];
    thread_t *new_thread = &system_threads.thread_list[new_id];
@@ -296,5 +295,5 @@ void thread_sleep(uint16_t ticks) {
     ticks;
    system_threads.thread_list[system_threads.current_thread].t_state = 
     THREAD_SLEEPING;
-   yield();
+   yield(get_next_thread());
 }

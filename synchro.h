@@ -14,15 +14,14 @@ void mutex_init(mutex_t *m);
 void mutex_lock(mutex_t *m);
 void mutex_unlock(mutex_t *m);
 
-/*
-TODO implement semaphore_t
 typedef struct semaphore_t {
+   int n;
+   Queue *waitlist;
 } semaphore_t;
 
-void sem_init(struct semaphore_t *s, int8_t value);
-void sem_wait(struct semaphore_t *s);
-void sem_signal(struct semaphore_t *s);
-void sem_signal_swap(struct semaphore_t *s);
-*/
+void sem_init(semaphore_t *s, int8_t value);
+void sem_wait(semaphore_t *s);
+void sem_signal(semaphore_t *s);
+void sem_signal_swap(semaphore_t *s);
 
 #endif

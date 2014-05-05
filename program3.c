@@ -11,15 +11,10 @@
 #define STACKSIZE 4 * (sizeof(regs_context_switch) + sizeof(regs_interrupt))
 #define BUF_SIZE 5
 
-/*
- * Shared buffer
- */
-static int buffer[BUF_SIZE];
-
-/*
- * Mutex to be used for the buffer
- */
-static mutex_t buffer_lock;
+static int buffer = 0;  // Shared buffer
+static mutex_t buffer_lock;   // Mutex to be used for the buffer
+static semaphore_t empty;
+static semaphore_t full; 
 
 /*
  * Blinks the on-board LED for |t| milliseconds
@@ -56,12 +51,14 @@ void debug_print();
 
 int main() {
    uint16_t t = 500;   // arg for blink
-   memset(buffer, 0, BUF_SIZE * sizeof(int));
 
    os_init();
    serial_init();
+   clear_screen();
 
    mutex_init(&buffer_lock);
+   sem_init(&empty, 1);
+   sem_init(&full, 0);
 
    // create_thread(blink, &t, STACKSIZE + sizeof(t));
    // create_thread(stats, NULL, STACKSIZE);
@@ -160,51 +157,82 @@ void producer() {
    srand(2);
 
    while (true) {
+      sem_wait(&empty);
       mutex_lock(&buffer_lock);
 
       set_cursor(1, 1);
       print_string("Writing to buffer ");
       print_int(system_threads.uptime_s);
+      buffer = rand() % 90 + 10;
 
-      buffer[rand() % BUF_SIZE] = rand() % 90 + 10;
-
-      thread_sleep(50);
       mutex_unlock(&buffer_lock);
-      thread_sleep(50);
+      sem_signal(&full);
+
+      thread_sleep(100);
    }
 }
 
 void consumer() {
    while (true) {
+      sem_wait(&full);
       mutex_lock(&buffer_lock);
 
       set_cursor(2, 1);
       print_string("Buffer contents ");
       print_int(system_threads.uptime_s);
       print_string(": ");
+      print_int(buffer);
 
-      int i;
-      for (i = 0; i < BUF_SIZE; i++) {
-         print_int(buffer[i]);
-         print_string(" ");
-      }
-
-      thread_sleep(50);
       mutex_unlock(&buffer_lock);
-      thread_sleep(50);
+      sem_signal(&empty);
 
+      thread_sleep(100);
    }
 }
 
 void debug_print() {
    while (true) {
       int i;
+      thread_t *id_wl;
+
+      cli();
+
+      set_cursor(5, 1);
+      print_string("thread id currently on buffer_lock waitlist: ");
+      if (Queue_empty(buffer_lock.waitlist))
+         print_string(" ");
+      else {
+         id_wl = Queue_peek(buffer_lock.waitlist);
+         print_int(id_wl->thread_id);
+      }
+
       set_cursor(6, 1);
+      print_string("thread id currently on sem full waitlist: ");
+      if (Queue_empty(full.waitlist))
+         print_string(" ");
+      else {
+         id_wl = Queue_peek(full.waitlist);
+         print_int(id_wl->thread_id);
+      }
+
+      set_cursor(7, 1);
+      print_string("thread id currently on sem empty waitlist: ");
+      if (Queue_empty(empty.waitlist))
+         print_string(" ");
+      else {
+         id_wl = Queue_peek(empty.waitlist);
+         print_int(id_wl->thread_id);
+      }
+
+      set_cursor(8, 1);
       print_string("thread states: ");
       for (i = 0; i < MAX_THREADS; i++) {
          print_int(system_threads.thread_list[i].t_state); 
          print_string(" ");
       }
-      thread_sleep(20);
+
+      sei();
+
+      thread_sleep(25);
    }
 }
