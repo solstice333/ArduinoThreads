@@ -15,6 +15,7 @@
 #define ESC 27
 
 #include <avr/io.h>
+#include <string.h>
 
 // boolean data type for readability
 typedef enum {

@@ -4,8 +4,6 @@
 #define DEBUG 1
 
 volatile system_t system_threads;
-static volatile uint8_t* os_start_garbage_base;
-static volatile uint8_t* os_start_garbage_end;
 
 //This interrupt routine is automatically run every 10 milliseconds
 ISR(TIMER0_COMPA_vect) {
@@ -209,6 +207,7 @@ void create_thread(uint16_t address, void *args, uint16_t stack_size) {
 }
 
 void os_start() {
+   uint8_t* os_start_garbage_base, os_start_garbage_end;
    system_threads.current_thread = get_next_thread();
 
    if (system_threads.current_thread == ETHREAD) {
