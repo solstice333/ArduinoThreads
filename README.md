@@ -24,3 +24,7 @@ are no threads to run and the system will deadlock. One resolution to this is
 to create a filler thread that just spins until the sleeping thread wakes up.
 
 3. Do not use _delay_ms(). Use thread_sleep() instead
+
+4. Almost running out of space in the data segment to store global variables
+and string literals? Adding in a few more print_string()'s or global variables
+in program3.c causes the program to act unpredictably.
