@@ -16,27 +16,12 @@ ISR(TIMER0_COMPA_vect) {
    asm volatile ("" : : : "r18", "r19", "r20", "r21", "r22", "r23", "r24", \
                  "r25", "r26", "r27", "r30", "r31");                        
 
-   volatile uint16_t *stack_ptr = 0x5D;
-
-   volatile uint8_t old_id = system_threads.current_thread;
-   volatile uint8_t new_id = system_threads.current_thread = get_next_thread();
-
-   volatile thread_t *old_thread = &system_threads.thread_list[old_id];
-   volatile thread_t *new_thread = &system_threads.thread_list[new_id];
-
-   // old thread updates
-   old_thread->tos = *stack_ptr - M_OFFSET - 1;
-   old_thread->stack_usage = old_thread->base - old_thread->tos + 1;
-   old_thread->t_state = THREAD_READY;
-
-   // new thread updates
-   new_thread->stack_usage = old_thread->base - *stack_ptr;
-   new_thread->t_state = THREAD_RUNNING;
+   int i;
 
    // increment interrupts
    system_threads.interrupts++;
 
-   int i;
+   // decrement interrupt_slept for all threads sleeping
    for (i < 0; i < MAX_THREADS; i++) {
       if (system_threads.thread_list[i].active && 
        system_threads.thread_list[i].interrupt_slept) {
@@ -45,16 +30,16 @@ ISR(TIMER0_COMPA_vect) {
       }
    }
 
-   // context switch
-   context_switch(system_threads.thread_list[new_id].tos - 1, 
-    *stack_ptr - PC_OFFSET);
+   system_threads.thread_list[system_threads.current_thread].t_state =
+    THREAD_READY;
+   yield(get_next_thread());
 }
 
 ISR(TIMER1_COMPA_vect) {
    //This interrupt routine is run once a second
    //The 2 interrupt routines will not interrupt each other
-   ++system_threads.uptime_s;
-   system_threads.interrupts_per_sec = SEC;
+   system_threads.interrupts_per_sec = system_threads.interrupts / 
+    ++system_threads.uptime_s;
 
    int i;
    for (i = 0, system_threads.num_threads = 0; 
@@ -191,10 +176,13 @@ void create_thread(uint16_t address, void *args, uint16_t stack_size) {
    open_thread = &system_threads.thread_list[idx];
    open_thread->thread_id = idx;
    open_thread->thread_pc = address;
+   open_thread->interrupted_pc = 0;
    open_thread->stack_usage = INIT_SIZE;
    open_thread->stack_size = stack_size;
    open_thread->t_state = THREAD_READY;
    open_thread->interrupt_slept = 0;
+   open_thread->run_count = 0;
+   open_thread->run_per_second = 0;
    
    // base represents the bottom of the stack and 
    // end represents the top of the stack
@@ -270,6 +258,7 @@ system_t *get_system_stats() {
 void yield(uint8_t next_thread) {
    uint16_t *stack_ptr = 0x5D;
 
+   uint8_t *pc_ptr_stack;
    uint8_t old_id = system_threads.current_thread;
    uint8_t new_id = system_threads.current_thread = next_thread;
 
@@ -280,10 +269,28 @@ void yield(uint8_t next_thread) {
    old_thread->tos = *stack_ptr - M_OFFSET - 1;
    old_thread->stack_usage = old_thread->base - old_thread->tos + 1;
 
+   // coming from thread_sleep, mutex lock, or sem wait
+   if (old_thread->t_state == THREAD_SLEEPING || old_thread->t_state == 
+    THREAD_WAITING)  
+      pc_ptr_stack = *stack_ptr + PC_OFFSET; 
+
+   // coming from isr 
+   else if (old_thread->t_state == THREAD_READY)   
+      pc_ptr_stack = *stack_ptr + sizeof(regs_context_switch) - 1;
+
+   // convert to little endian
+   uint8_t *pc_ptr_int_pc = &old_thread->interrupted_pc;
+   *pc_ptr_int_pc++ = *pc_ptr_stack--; // low byte assignment
+   *pc_ptr_int_pc = *pc_ptr_stack;     // high byte assignment
+
    // new thread updates
    new_thread->stack_usage = new_thread->base - new_thread->tos + 
     M_OFFSET + PC_OFFSET;
    new_thread->t_state = THREAD_RUNNING;
+
+   if (system_threads.uptime_s)
+      new_thread->run_per_second = ++new_thread->run_count / 
+       system_threads.uptime_s;
 
    // context switch
    context_switch(system_threads.thread_list[new_id].tos - 1, 
@@ -295,5 +302,10 @@ void thread_sleep(uint16_t ticks) {
     ticks;
    system_threads.thread_list[system_threads.current_thread].t_state = 
     THREAD_SLEEPING;
+   
+   if (!ticks)
+      system_threads.thread_list[system_threads.current_thread].t_state = 
+       THREAD_READY;
+
    yield(get_next_thread());
 }

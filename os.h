@@ -8,13 +8,14 @@
 
 #define MAX_THREADS 8
 #define M_OFFSET 18  // offset for manually saved registers
-#define PC_OFFSET 2   // offset related to automatic push of pc
-#define ARGS 2
-#define ETHREAD 255
-#define INIT_SIZE 20
-#define REMAINING 15
-#define GARBAGE_SIZE 32
-#define SEC 100
+#define A_OFFSET 18  // offset for automatically saved registers
+#define PC_OFFSET 2  // offset related to automatic push of pc
+#define ARGS 2       // number of args
+#define ETHREAD 255  // error thread id
+#define INIT_SIZE 20 // initial stack size
+#define REMAINING 15 // remaining spots in stack during create_thread()
+#define GARBAGE_SIZE 32 // garbage size for first context switch
+#define SEC 100   // expected interrupts per second
 
 // enum for thread states
 typedef enum {
@@ -80,6 +81,7 @@ typedef struct regs_interrupt {
 typedef struct thread_t {
    uint8_t thread_id;
    uint16_t thread_pc;
+   uint16_t interrupted_pc;
    uint8_t stack_usage;
    uint16_t stack_size;
    uint8_t *tos;
@@ -88,6 +90,8 @@ typedef struct thread_t {
    bool active;
    thread_state t_state;
    uint16_t interrupt_slept;
+   uint32_t run_count;
+   uint16_t run_per_second;
 } thread_t;
 
 // system_t contains a list of all threads running and a pointer to the
@@ -141,7 +145,9 @@ system_t *get_system_stats();
 /*
  * Immediately calls context_switch to exit out of thread and switch to
  * thread with id |next_thread|. Used primarily when thread state transitions 
- * to THREAD_SLEEPING or THREAD_WAITING to prevent deadlocking.  
+ * to THREAD_SLEEPING or THREAD_WAITING to prevent deadlocking. The thread
+ * belonging to id |next_thread| is switched to THREAD_RUNNING. The caller
+ * is responsible for setting the state of the previous thread. 
  */
 void yield(uint8_t next_thread);
 
