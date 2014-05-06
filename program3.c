@@ -13,15 +13,16 @@
 #define BUF_SIZE 10
 #define SEED 4
 
-int buffer[BUF_SIZE] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; // Shared buffer
-int consumed = 0;   // Value consumed
-mutex_t buffer_lock;   // Mutex to be used for the buffer
-mutex_t print_lock; // Only one thread printing to screen at once 
-mutex_t is_producing; // locked if producing
-semaphore_t empty;  // Semaphore for checking empty spots in buffer
-semaphore_t full;   // Semaphore for checking full spots in buffer
-int p_sleep = 100;  // Production rate related
-int c_sleep = 100;  // Consuming rate related
+uint8_t buffer[BUF_SIZE] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }; // Shared buffer
+uint8_t consumed = 0;       // Value consumed
+mutex_t buffer_lock;    // Mutex to be used for the buffer
+mutex_t print_lock;     // Only one thread printing to screen at once 
+mutex_t is_producing;   // locked if producing
+mutex_t is_consuming;   // locked if consuming
+semaphore_t empty;      // Semaphore for checking empty spots in buffer
+semaphore_t full;       // Semaphore for checking full spots in buffer
+uint8_t p_sleep = 100;      // Production rate related
+uint8_t c_sleep = 100;      // Consuming rate related
 
 /*
  * Filler thread. Use this as the default thread when no other threads are
@@ -64,6 +65,7 @@ int main() {
    mutex_init(&buffer_lock);
    mutex_init(&print_lock);
    mutex_init(&is_producing);
+   mutex_init(&is_consuming);
    sem_init(&empty, BUF_SIZE);
    sem_init(&full, 0);
 
@@ -87,7 +89,10 @@ void blink() {
    DDRB |= 1 << 5;
 
    while (true) {
+      mutex_lock(&is_consuming);
       PORTB |= 1 << 5;  // on
+      mutex_unlock(&is_consuming);
+
       mutex_lock(&is_producing);
       PORTB &= ~(1 << 5); // off
       mutex_unlock(&is_producing);
@@ -196,10 +201,9 @@ void producer() {
       mutex_lock(&buffer_lock);
       mutex_lock(&is_producing);
 
+      thread_sleep(p_sleep);
       buffer[in] = rand() % 90 + 10;
       in = (in + 1) % BUF_SIZE;
-
-      thread_sleep(p_sleep);
 
       mutex_unlock(&is_producing);
       mutex_unlock(&buffer_lock);
@@ -213,12 +217,13 @@ void consumer() {
    while (true) {
       sem_wait(&full);
       mutex_lock(&buffer_lock);
+      mutex_lock(&is_consuming);
 
       thread_sleep(c_sleep);
-
       consumed = buffer[out];
       out = (out + 1) % BUF_SIZE;
 
+      mutex_unlock(&is_consuming);
       mutex_unlock(&buffer_lock);
       sem_signal_swap(&empty);
    }
@@ -240,20 +245,20 @@ void display_bounded_buffer() {
       }
 
       set_cursor(16, 1);
-      print_string("consumed: ");
+      print_string("cons: ");
       print_int(consumed);
 
       set_cursor(17, 1);
-      print_string("prod rate: 1 item / ");
+      print_string("p rate: 1 / ");
       print_string("       ");
-      set_cursor(17, 21);
+      set_cursor(17, 13);
       print_int(p_sleep * 10);
       print_string(" ms");
 
       set_cursor(18, 1);
-      print_string("cons rate: 1 item / ");
+      print_string("c rate: 1 / ");
       print_string("       ");
-      set_cursor(18, 21);
+      set_cursor(18, 13);
       print_int(c_sleep * 10);
       print_string(" ms");
 
