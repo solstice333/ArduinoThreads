@@ -207,7 +207,12 @@ void producer() {
 
       mutex_unlock(&is_producing);
       mutex_unlock(&buffer_lock);
+
+#if DEBUG
+      sem_signal(&full);
+#else
       sem_signal_swap(&full);
+#endif
    }
 }
 
@@ -225,7 +230,12 @@ void consumer() {
 
       mutex_unlock(&is_consuming);
       mutex_unlock(&buffer_lock);
+
+#if DEBUG
+      sem_signal(&empty);
+#else
       sem_signal_swap(&empty);
+#endif
    }
 }
 
@@ -261,6 +271,15 @@ void display_bounded_buffer() {
       set_cursor(18, 13);
       print_int(c_sleep * 10);
       print_string(" ms");
+
+      set_cursor(19, 1);
+
+      print_string("  ");
+      set_cursor(19, 1);
+      if (full.n >= 0)
+         print_int(full.n);
+      else
+         print_string("-1");
 
       mutex_unlock(&print_lock);
 

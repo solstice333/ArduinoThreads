@@ -44,6 +44,7 @@ void sem_init(semaphore_t *s, int8_t value) {
 
 void sem_wait(semaphore_t *s) {
    s->n--;
+
    if (s->n < 0) {
       cli();
 
@@ -59,6 +60,7 @@ void sem_wait(semaphore_t *s) {
 
 void sem_signal(semaphore_t *s) {
    s->n++;
+
    if (s->n <= 0) {
       thread_t *next_thread = Queue_pop(s->waitlist);
       next_thread->t_state = THREAD_READY;
