@@ -1,20 +1,21 @@
-#Program 3#
+#Program 5#
 
 ##Description##
-Program 3 - Basis of mini Arduino OS
+Program 5 - Arduino OS with music playback
+
 Authors: Kevin Navero, Brian Truong
 
 ##How To Use##
 To compile program from the terminal,
 
 ```
-$ sudo make program3
-$ sudo screen /dev/ttyACM0 115200   # replace /dev/ttyACM0 with correct
-                                    # device/serial port
+$ ./buildAndScreen.sh <device serial port>
 ```
+Example:
 
-To adjust production rate using 'a' to speed up or 'z' to slow down. To adjust 
-consumption rate, use 'k' to speed up, and 'm' to slow down.
+```
+$ ./buildAndScreen.sh /dev/ttyACM0
+```
 
 ##Notes##
 
@@ -30,14 +31,4 @@ In general, always have one thread active and ready/running.
 
 3. Do not use _delay_ms(). Use thread_sleep() instead
 
-4. Almost running out of space in the data segment to store global variables
-and string literals? Adding in a few more print_string()'s or global variables
-in program3.c causes the program to act unpredictably.
-
 ##Known Bugs##
-
-1. Adjusting the production rate and consumption rate rapidly may cause the 
-program to completely reset unpredictably.
-
-2. Production rate and consumption rate does not go slower than 1 item per
-2500 ms without wrapping around to 40 ms.

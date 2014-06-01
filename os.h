@@ -5,6 +5,7 @@
 #include <avr/interrupt.h>
 #include <stdlib.h>
 #include "globals.h"
+#include "os_util.h"
 
 #define MAX_THREADS 8
 #define M_OFFSET 18  // offset for manually saved registers

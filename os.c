@@ -47,8 +47,9 @@ ISR(TIMER1_COMPA_vect) {
    }
 }
 
-//Call this to start the system timer interrupt
-void start_system_timer() {
+// this version of start_system_timer() has been deprecated since program5
+// Call this to start the system timer interrupt
+/* void start_system_timer() {
    TIMSK0 |= _BV(OCIE0A);  //interrupt on compare match
    TCCR0A |= _BV(WGM01);   //clear timer on compare match
 
@@ -60,7 +61,7 @@ void start_system_timer() {
    OCR1A = 15625;
    TIMSK1 |= _BV(OCIE1A);  //interrupt on compare
    TCCR1B |= _BV(WGM12) | _BV(CS12) | _BV(CS10); //slowest prescalar /1024
-}
+} */
 
 /*
  * Switches between threads. |new_tp| is the new top of stack to point to. 

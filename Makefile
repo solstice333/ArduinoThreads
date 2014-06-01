@@ -1,16 +1,17 @@
-DEV=/dev/ttyACM0
+# DEV=/dev/ttyACM0
 CFLAGS=-w
 
 #Compile and Flash the Arduino
 #Be sure to change the device (the argument after -P) to match the device on your computer
 #On Windows, change the argument after -P to appropriate COM port
-program3: os.c os.h globals.h serial.c program3.c synchro.h synchro.c queue.h\
- queue.c
-	avr-gcc $(CFLAGS) -mmcu=atmega328p -DF_CPU=16000000 -O2 -o program3.elf\
-	 program3.c serial.c os.c synchro.c queue.c
-	avr-objcopy -O ihex program3.elf program3.hex
-	avr-size program3.elf
-	avrdude -pm328p -P $(DEV) -c arduino -F -u -U flash:w:program3.hex
+
+program5: globals.h os.c os.h os_util.c program5.c queue.c queue.h SdInfo.h\
+ SdReader.c SdReader.h serial.c synchro.c synchro.h WavePinDefs.h
+	avr-gcc $(CFLAGS) -mmcu=atmega328p -DF_CPU=16000000 -O2 -o program5.elf\
+	 os.c os_util.c program5.c queue.c SdReader.c serial.c synchro.c
+	avr-objcopy -O ihex program5.elf program5.hex
+	avr-size program5.elf
+	avrdude -pm328p -P $(DEV) -c arduino -F -u -U flash:w:program5.hex
 
 #remove build files
 clean:

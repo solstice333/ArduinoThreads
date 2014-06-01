@@ -1,10 +1,11 @@
 #include <avr/io.h>
 #include <avr/interrupt.h>
+#include "os_util.h"
 #include "os.h"
 #include "globals.h"
 
 void start_system_timer() {
-   TIMSK0 |= _BV(OCIE0A);  /* IRQ on compare.  */
+   TIMSK0 |= _BV(OCIE0A);  // IRQ on compare.
    TCCR0A |= _BV(WGM01); //clear timer on compare match
 
    //22KHz settings
@@ -13,7 +14,7 @@ void start_system_timer() {
 
    //start timer 1 to generate interrupt every 1 second
    OCR1A = 15625;
-   TIMSK1 |= _BV(OCIE1A);  /* IRQ on compare.  */
+   TIMSK1 |= _BV(OCIE1A);  // IRQ on compare.
    TCCR1B |= _BV(WGM12) | _BV(CS12) | _BV(CS10); //slowest prescalar /1024
 }
 
@@ -24,4 +25,3 @@ void start_audio_pwm() {
 
    DDRD |= _BV(PD3); //make OC2B an output
 }
-
