@@ -4,14 +4,6 @@
 #include "SdReader.h"
 #include "WavePinDefs.h"
 
-#ifndef cbi
-#define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
-#endif
-
-#ifndef sbi
-#define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
-#endif
-
 uint32_t block_;
 uint8_t errorCode_=0;
 uint8_t errorData_=0;

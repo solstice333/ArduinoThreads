@@ -137,9 +137,11 @@ void os_start();
 uint8_t get_next_thread();
 
 /*
+ * DEPRECATED
  * Returns a pointer to |system_threads|. Use only as read-only. As of
  * program 3, system stats has been made available as an extern global
- * variable via |system_threads|. This function is thus deprecated.
+ * variable via |system_threads| so that the synchronization functions can
+ * freely manipulate them. This function is thus deprecated.
  */
 system_t *get_system_stats();
 

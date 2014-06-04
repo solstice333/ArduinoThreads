@@ -20,7 +20,7 @@ ISR(TIMER0_COMPA_vect) {
    system_threads.interrupts++;
 
    // decrement interrupt_slept for all threads sleeping
-   for (i < 0; i < MAX_THREADS; i++) {
+   for (i = 0; i < MAX_THREADS; i++) {
       if (system_threads.thread_list[i].active && 
        system_threads.thread_list[i].interrupt_slept) {
          if (!--system_threads.thread_list[i].interrupt_slept)
@@ -30,7 +30,7 @@ ISR(TIMER0_COMPA_vect) {
 
    system_threads.thread_list[system_threads.current_thread].t_state =
     THREAD_READY;
-   yield(get_next_thread());
+   yield(0);
 }
 
 ISR(TIMER1_COMPA_vect) {
@@ -46,22 +46,6 @@ ISR(TIMER1_COMPA_vect) {
          ++system_threads.num_threads; 
    }
 }
-
-// this version of start_system_timer() has been deprecated since program5
-// Call this to start the system timer interrupt
-/* void start_system_timer() {
-   TIMSK0 |= _BV(OCIE0A);  //interrupt on compare match
-   TCCR0A |= _BV(WGM01);   //clear timer on compare match
-
-   //Generate timer interrupt every ~10 milliseconds
-   TCCR0B |= _BV(CS02) | _BV(CS00);    //prescalar /1024
-   OCR0A = 156;             //generate interrupt every 9.98 milliseconds
-
-    //start timer 1 to generate interrupt every 1 second
-   OCR1A = 15625;
-   TIMSK1 |= _BV(OCIE1A);  //interrupt on compare
-   TCCR1B |= _BV(WGM12) | _BV(CS12) | _BV(CS10); //slowest prescalar /1024
-} */
 
 /*
  * Switches between threads. |new_tp| is the new top of stack to point to. 
