@@ -7,6 +7,8 @@
 
 #include "ext2reader.h"
 
+#define DEBUG 1
+
 /*
  * This is called by parse_blocks() for recursion, and is not to be
  * directly called by the client application. |blocks| points to the beginning
@@ -70,29 +72,35 @@ static void parse_blocks(uint32_t *blocks) {
    parse_blocks_recurs(blocks, "d");
 }
 
-void print_error_msg_and_exit(int exit_value) {
-   fprintf(stderr,
-         "\nUsage: \n"
-               "     ext2reader <image.ext2> [path]\n"
-               "     ext2reader -l <image.ext2> <file_to_dump.txt>\n"
-               "\n     If [path] is not specified, '/' will be used\n"
-               "\nOptions:\n"
-               "     -l    print to the screen the contents of <file_to_dump.txt>\n"
-               "\nNotes:\n"
-               "     All paths not prefixed with '/' are relative to the root directory\n");
-   exit(exit_value);
-}
-
 uint32_t *get_root() {
    int i;
 
    // get superblock
-   ext2_super_block *sb = malloc(BLOCK_SIZE);
-   sdReadData(2, 0, sb, BLOCK_SIZE);
+   ext2_super_block *sb = malloc(sizeof(ext2_super_block));
+   if (!sdReadData(2, 0, sb, sizeof(ext2_super_block))) {
+      print_string("Error: failed to read sd card in get_root ");
+      exit(1);
+   }
 
+#if DEBUG
+/*
+   set_cursor(1, 1);
+   print_string("success: ");
+   print_int(success);
+   set_cursor(2, 1);
+   print_string("number of blocks: ");
+   print_int32(sb->s_blocks_count);
+   set_cursor(3, 1);
    print_string("number of inodes: ");
    print_int32(sb->s_inodes_count);
-   exit(1);
+   set_cursor(4, 1);
+   print_string("blocks per group: ");
+   print_int32(sb->s_blocks_per_group);
+   set_cursor(5, 1);
+   print_string("log block size: ");
+   print_int32(sb->s_log_block_size);
+   */
+#endif
 
    // get bgdt, root dir entry list, and an array of the first
    // 12 blocks in inode 2
@@ -123,8 +131,27 @@ void list_entries(uint32_t *blocks) {
    char type;
 
    // get superblock
-   ext2_super_block *sb = malloc(BLOCK_SIZE);
-   sdReadData(2, 0, sb, BLOCK_SIZE);
+   ext2_super_block *sb = malloc(sizeof(ext2_super_block));
+   if (!sdReadData(2, 0, sb, sizeof(ext2_super_block))) {
+      print_string("Error: failed to read sd card in list_entries");
+      exit(1);
+   }
+
+#if DEBUG
+   set_cursor(7, 1);
+   print_string("number of blocks: ");
+   print_int32(sb->s_blocks_count);
+   set_cursor(8, 1);
+   print_string("number of inodes: ");
+   print_int32(sb->s_inodes_count);
+   set_cursor(9, 1);
+   print_string("blocks per group: ");
+   print_int32(sb->s_blocks_per_group);
+   set_cursor(10, 1);
+   print_string("log block size: ");
+   print_int32(sb->s_log_block_size);
+   exit(1);
+#endif
 
    // get bgdt and allocate space for an inode
    ext2_group_desc *bgdt = malloc(BLOCK_SIZE);
@@ -135,6 +162,7 @@ void list_entries(uint32_t *blocks) {
    ext2_dir_entry *dir = malloc(BLOCK_SIZE);
    sdReadData(blocks[i] * 2, 0, dir, BLOCK_SIZE);
    ext2_dir_entry *dir_next = dir;
+
 
    /*
    while (dir_next->inode) {
@@ -158,14 +186,6 @@ void list_entries(uint32_t *blocks) {
       else
          type = 'u';
       size = ino->i_size;
-
-      print_string("here");
-      print_string(name);
-      print_string(" ");
-      print_string(type);
-      print_string(" ");
-      print_int(size);
-      exit(1);
 
       dir_next = ((char *) dir_next) + dir_next->rec_len;
       if ((char *) dir_next - (char *) dir >= BLOCK_SIZE) {

@@ -288,6 +288,7 @@ uint8_t sdReadData(uint32_t block,
          return 0;
       }
       if (!sdWaitStartBlock()) {
+         print_string("Error: sdWaitStartBlock ");
          return 0;
       }
       offset_ = 0;
@@ -383,6 +384,7 @@ uint8_t sdWaitStartBlock(void) {
    }
    if (r == DATA_START_BLOCK) return 1;
    error2(SD_CARD_ERROR_READ, r);
+   print_string("Error: sd card error read error2 ");
    return 0;
 }
 

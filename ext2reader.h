@@ -16,17 +16,11 @@
 #include "SdReader.h"
 
 #define DEFAULT_SIZE 64
-#define BLOCK_SIZE 1024
+#define BLOCK_SIZE 512
 #define INODE_SIZE sizeof(ext2_inode)
 #define TO_BGDT 2
 #define ISDIR_SHIFT 14
 #define ISFILE_SHIFT 15
-
-/*
- * Prints a message displaying Usage instructions and exits returning a
- * value of 1
- */
-void print_error_msg_and_exit(int exit_value);
 
 /*
  * Finds the root directory inside ext2 filesystem 
