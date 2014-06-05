@@ -1,7 +1,12 @@
 #include "os.h"
 #include "globals.h"
 
-#define DEBUG 1
+#define DEBUG 0
+#define ROUND_ROBIN 1
+
+#if DEBUG
+static int val = 0;
+#endif
 
 volatile system_t system_threads;
 
@@ -19,18 +24,77 @@ ISR(TIMER0_COMPA_vect) {
    // increment interrupts
    system_threads.interrupts++;
 
+
+#if DEBUG
+   for (i = 0; i < MAX_THREADS; i++) {
+      if (system_threads.thread_list[i].active) {
+         set_cursor(i + 1, 1);
+         print_string("thread ");
+         print_int(i);
+         print_string(" interrupt_slept: ");
+         print_int(system_threads.thread_list[i].interrupt_slept);
+         print_string(" t_state: ");
+         print_int(system_threads.thread_list[i].t_state);
+      }
+   }
+
+   set_cursor(++i, 1);
+   print_string("current thread: ");
+   print_int(system_threads.current_thread);
+
+   set_cursor(++i, 1);
+   print_string("number of interrupts: ");
+   print_int(system_threads.interrupts);
+
+   if (system_threads.thread_list[0].t_state == THREAD_SLEEPING &&
+    system_threads.thread_list[0].interrupt_slept == 1)
+      val++;
+
+   if (val == 2)
+      exit(1);
+#endif
+
    // decrement interrupt_slept for all threads sleeping
    for (i = 0; i < MAX_THREADS; i++) {
       if (system_threads.thread_list[i].active && 
-       system_threads.thread_list[i].interrupt_slept) {
+       system_threads.thread_list[i].t_state == THREAD_SLEEPING) {
          if (!--system_threads.thread_list[i].interrupt_slept)
             system_threads.thread_list[i].t_state = THREAD_READY;
       }
    }
 
-   system_threads.thread_list[system_threads.current_thread].t_state =
-    THREAD_READY;
+#if DEBUG
+   for (i = 0; i < MAX_THREADS; i++) {
+      if (system_threads.thread_list[i].active) {
+         set_cursor(i + 1, 1);
+         print_string("thread ");
+         print_int(i);
+         print_string(" interrupt_slept: ");
+         print_int(system_threads.thread_list[i].interrupt_slept);
+         print_string(" t_state: ");
+         print_int(system_threads.thread_list[i].t_state);
+      }
+   }
+
+   set_cursor(++i, 1);
+   print_string("current thread: ");
+   print_int(system_threads.current_thread);
+
+   set_cursor(++i, 1);
+   print_string("number of interrupts: ");
+   print_int(system_threads.interrupts);
+#endif
+
+   if (system_threads.thread_list[system_threads.current_thread].t_state
+      == THREAD_RUNNING)
+      system_threads.thread_list[system_threads.current_thread].t_state =
+       THREAD_READY;
+
+#if ROUND_ROBIN
+   yield(get_next_thread());
+#else
    yield(0);
+#endif
 }
 
 ISR(TIMER1_COMPA_vect) {
@@ -282,11 +346,11 @@ void yield(uint8_t next_thread) {
 }
 
 void thread_sleep(uint16_t ticks) {
-   system_threads.thread_list[system_threads.current_thread].interrupt_slept =
-    ticks;
+   system_threads.thread_list[system_threads.current_thread].interrupt_slept 
+    = ticks;
    system_threads.thread_list[system_threads.current_thread].t_state = 
     THREAD_SLEEPING;
-   
+
    if (!ticks)
       system_threads.thread_list[system_threads.current_thread].t_state = 
        THREAD_READY;

@@ -3,15 +3,14 @@
 #include <assert.h>
 #include "globals.h"
 #include "os.h"
-#include "SdInfo.h"
-#include "SdReader.h"
 #include "synchro.h"
+#include "ext2reader.h"
 
 #define DEBUG 1
 #define STACKSIZE 4 * (sizeof(regs_context_switch) + sizeof(regs_interrupt))
 
-int playback_global = 0;
-int read_global = 0;
+uint8_t p_buffer[256];
+uint8_t c_buffer[256];
 
 /*
  * Audio playback thread
@@ -50,9 +49,9 @@ int main(void) {
    os_init();
    clear_screen();
 
-   create_thread(playback, NULL, STACKSIZE);
+   // create_thread(playback, NULL, STACKSIZE);
    create_thread(read, NULL, STACKSIZE);
-   create_thread(display, NULL, STACKSIZE);
+   // create_thread(display, NULL, STACKSIZE);
    create_thread(idle, NULL, STACKSIZE);
    os_start();
 
@@ -60,32 +59,25 @@ int main(void) {
 }
 
 void playback() {
+   int i = 0; 
+
    while (true) {
-      playback_global = !playback_global;
-      thread_sleep(1);
+      print_string("foo ");
+      OCR2B = i++ % 256;
    }
 }
 
 void read() {
+   uint32_t *blocks = get_root();
+
    while (true) {
-      read_global = !read_global;
-      thread_sleep(2);
+      list_entries(blocks);
    }
 }
 
 void display() {
    while (true) {
-      set_cursor(1, 1);
-      print_string("playback_global: ");
-      print_int(playback_global);
-      print_string(" ");
-
-      set_cursor(2, 1);
-      print_string("read_global: ");
-      print_int(read_global);
-      print_string(" ");
-
-      thread_sleep(10999);
+      print_string("foo ");
    }
 }
 
