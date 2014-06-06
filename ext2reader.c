@@ -7,7 +7,9 @@
 
 #include "ext2reader.h"
 
-#define DEBUG 1
+#define DEBUG_SB_BGDT 1
+#define DEBUG_INO 0
+#define DEBUG_DENTRY 0
 
 /*
  * This is called by parse_blocks() for recursion, and is not to be
@@ -16,6 +18,7 @@
  * inside i_mode. |opt| can be either "d" for direct, "i" for indirect, or
  * "I" for doubly indirect.
  */
+/*
 static void parse_blocks_recurs(uint32_t *blocks, char *opt) {
    int i, j, k;
    char data[BLOCK_SIZE];
@@ -60,6 +63,7 @@ static void parse_blocks_recurs(uint32_t *blocks, char *opt) {
    else
       fprintf(stderr, "\nError: invalid opt\n");
 }
+*/
 
 /*
  * Parse block pointers and dump the data to screen. The intended use of this
@@ -68,170 +72,121 @@ static void parse_blocks_recurs(uint32_t *blocks, char *opt) {
  * This function is called within dump_file() and shouldn't be called directly
  * inside the client application
  */
+/*
 static void parse_blocks(uint32_t *blocks) {
    parse_blocks_recurs(blocks, "d");
 }
+*/
 
 uint32_t *get_root() {
    int i;
 
    // get superblock
-   //ext2_super_block *sb = malloc(sizeof(ext2_super_block));
-  uint8_t data[sizeof(ext2_super_block)];
-   if (!sdReadData(2, 0, data, sizeof(ext2_super_block))) {
-      print_string("Error: failed to read sd card in get_root ");
-      exit(1);
-   }
-   ext2_super_block *sb = (ext2_super_block *) data; 
-#if DEBUG
-   set_cursor(2, 1);
-   print_string("number of blocks: ");
-   print_int32(sb->s_blocks_count);
-   set_cursor(3, 1);
-   print_string("number of inodes: ");
-   print_int32(sb->s_inodes_count);
-   set_cursor(4, 1);
-   print_string("blocks per group: ");
-   print_int32(sb->s_blocks_per_group);
-   set_cursor(5, 1);
-   print_string("log block size: ");
-   print_int32(sb->s_log_block_size);
-#endif
+   uint8_t data_sb[sizeof(ext2_super_block)];
+   sdReadDataSafe(2, 0, data_sb, sizeof(ext2_super_block));
+   ext2_super_block *sb = (ext2_super_block *) data_sb; 
 
    // get bgdt, root dir entry list, and an array of the first
    // 12 blocks in inode 2
-   uint8_t data2[BLOCK_SIZE];
-   if (!sdReadData(2 + TO_BGDT, 0, data2, BLOCK_SIZE)) {
-      print_string("Error: failed to read sd card at data2");
-      exit(1);
-   }
+   uint8_t data_bgdt[BLOCK_SIZE];
+   sdReadDataSafe(4, 0, data_bgdt, BLOCK_SIZE);
+   ext2_group_desc *bgdt = (ext2_group_desc *)data_bgdt;
 
-   ext2_group_desc *bgdt = (ext2_group_desc *) data2;
-
-#if DEBUG
-   set_cursor(6, 1); 
-   print_int(bgdt[0].bg_inode_table);
-#endif
-
-   uint8_t data3[INODE_SIZE];
-   if (!sdReadData(bgdt[0].bg_inode_table * 2, INODE_SIZE, data3, 
-      INODE_SIZE)) {
-      print_string("Error: failed to read sd card at bgdt data3 ");
-      exit(1);
-   }
-   ext2_inode *ino = (ext2_inode *) data3;
-
-#if DEBUG
-   set_cursor(7, 1);
-   print_int(100);
+// test superblock and bgdt contents
+#if DEBUG_SB_BGDT
+   set_cursor(1, 1);
+   print_string("blocks per group: ");
+   print_int32(sb->s_blocks_per_group);
+   set_cursor(2, 1);
+   print_string("inode table index: ");
+   print_int32(bgdt[0].bg_inode_table);
    exit(1);
 #endif
 
+   // No longer printing after this block for some reason. More memory issues?
+   uint8_t data_ino[sizeof(ext2_inode)];
+   sdReadDataSafe(bgdt[0].bg_inode_table * 2, sizeof(ext2_inode), data_ino, 
+    sizeof(ext2_inode));
+   ext2_inode *ino = (ext2_inode *) data_ino;
 
+// test root inode contents
+#if DEBUG_INO
+   set_cursor(1, 1);
+   print_string("mode: ");
+   print_hex(ino->i_mode);
+   set_cursor(2, 1);
+   print_string("blocks count: ");
+   print_int32(ino->i_blocks);
+   exit(1);
+#endif
 
-   // copy all the direct block pointers to a blocks array for root
-   // inode (inode 2)
+   // copy all the direct block pointers to an array
    uint32_t *blocks = malloc(13 * sizeof(uint32_t));
    for (i = 0; ino->i_block[i] && i < 12; i++)
       blocks[i] = ino->i_block[i];
    blocks[i] = 0;
 
-   // teardown
-   //free(ino);
-   //free(bgdt);
-   //free(sb);
+// test trying to print first directory entry name inside root
+#if DEBUG_DENTRY
+   char name[DEFAULT_SIZE];
+   
+   // set dir and dir_next directory entries
+   uint8_t data_dir[BLOCK_SIZE];
+   sdReadDataSafe(blocks[0] * 2, 0, data_dir, BLOCK_SIZE);
+   ext2_dir_entry *dir_next = (ext2_dir_entry *)data_dir;
+
+   strncpy(name, dir_next->name, dir_next->name_len);
+   name[dir_next->name_len] = NULL;
+
+   print_string(name);
+   exit(1);
+#endif
+
    return blocks;
 }
 
-
 void list_entries(uint32_t *blocks) {
-/*
    int i = 0, size;
    int sectors, offset, block_group, local_idx;
    char name[DEFAULT_SIZE];
    char type;
 
    // get superblock
-   //ext2_super_block *sb = malloc(sizeof(ext2_super_block));
-   uint8_t sb[sizeof(ext2_super_block)];
-   if (!sdReadData(2, 0, sb, sizeof(ext2_super_block))) {
-      print_string("Error: failed to read sd card in list_entries");
-      exit(1); } 
-#if DEBUG
-
-   set_cursor(7, 1);
-   print_string("number of blocks: ");
-   print_int32(sb->s_blocks_count);
-   set_cursor(8, 1);
-   print_string("number of inodes: ");
-   print_int32(sb->s_inodes_count);
-   set_cursor(9, 1);
-   print_string("blocks per group: ");
-   print_int32(sb->s_blocks_per_group);
-   set_cursor(10, 1);
-   print_string("log block size: ");
-   print_int32(sb->s_log_block_size);
-   exit(1);
-
-#endif
+   uint8_t data_sb[sizeof(ext2_super_block)];
+   sdReadDataSafe(2, 0, data_sb, sizeof(ext2_super_block));
+   ext2_super_block *sb = (ext2_super_block *)data_sb;
 
    // get bgdt and allocate space for an inode
-   ext2_group_desc *bgdt = malloc(BLOCK_SIZE);
-   //uint8_t bdgt[BLOCK_SIZE];
-   sdReadData(4, 0, bgdt, BLOCK_SIZE);
-   //ext2_inode *ino = malloc(INODE_SIZE);
-   //uint8_t ino[BLOCK_SIZE];
+   uint8_t data_bgdt[BLOCK_SIZE];
+   sdReadDataSafe(4, 0, data_bgdt, BLOCK_SIZE);
+   ext2_group_desc *bgdt = (ext2_group_desc *)data_bgdt;
 
    // set dir and dir_next directory entries
-   ext2_dir_entry *dir = malloc(BLOCK_SIZE);
-   //uint8_t dir[BLOCK_SIZE];
-   sdReadData(blocks[i] * 2, 0, dir, BLOCK_SIZE);
-   ext2_dir_entry *dir_next = dir;
+   uint8_t data_dir[BLOCK_SIZE];
+   sdReadDataSafe(blocks[i] * 2, 0, data_dir, BLOCK_SIZE);
+   ext2_dir_entry *dir_next = (ext2_dir_entry *)data_dir;
 
-
-   
    while (dir_next->inode) {
       // turn directory entry name into c-string
       strncpy(name, dir_next->name, dir_next->name_len);
       name[dir_next->name_len] = NULL;
 
-      // get the associating inode
-      block_group = (dir_next->inode - 1) / sb->s_inodes_per_group;
-      local_idx = (dir_next->inode - 1) % sb->s_inodes_per_group;
-      sectors = local_idx * INODE_SIZE / 512;
-      offset = local_idx * INODE_SIZE % 512;
+      print_string(name);
 
-      sdReadData(bgdt[block_group].bg_inode_table * 2 + sectors, offset, ino,
-       INODE_SIZE);
-
-      if (ino->i_mode >> ISDIR_SHIFT & 1)
-         type = 'd';
-      else if (ino->i_mode >> ISFILE_SHIFT & 1)
-         type = 'f';
-      else
-         type = 'u';
-      size = ino->i_size;
-
-      dir_next = ((char *) dir_next) + dir_next->rec_len;
-      if ((char *) dir_next - (char *) dir >= BLOCK_SIZE) {
-         sdReadData(blocks[++i] * 2, 0, dir, BLOCK_SIZE);
-         dir_next = dir;
+      dir_next = ((uint8_t *) dir_next) + dir_next->rec_len;
+      if ((uint8_t *)dir_next - data_dir >= BLOCK_SIZE) {
+         sdReadDataSafe(blocks[++i] * 2, 0, data_dir, BLOCK_SIZE);
+         dir_next = (ext2_dir_entry *)data_dir;
       }
    }
-   
-
-   free(dir);
-   free(ino);
-   free(bgdt);
-   //free(sb);
-*/
 }
 
+/*
 void dump_file(uint32_t *blocks, char *file_dump) {
    int i = 0;
    ext2_super_block *sb = malloc(BLOCK_SIZE);
    ext2_group_desc *bgdt = malloc(BLOCK_SIZE);
-   ext2_inode *ino = malloc(INODE_SIZE);
+   ext2_inode *ino = malloc(sizeof(ext2_inode));
    ext2_dir_entry *dentry = malloc(BLOCK_SIZE);
    bool data_dumped = false;
 
@@ -253,10 +208,10 @@ void dump_file(uint32_t *blocks, char *file_dump) {
          int local_inode_index = (dentry_next->inode - 1)
                % sb->s_inodes_per_group;
 
-         int sectors = local_inode_index * INODE_SIZE / 512;
-         int offset = local_inode_index * INODE_SIZE % 512;
+         int sectors = local_inode_index * sizeof(ext2_inode) / 512;
+         int offset = local_inode_index * sizeof(ext2_inode) % 512;
          sdReadData(bgdt[block_group].bg_inode_table * 2 + sectors, offset, ino,
-          INODE_SIZE);
+          sizeof(ext2_inode));
 
          // if a file, traverse through all in-use block pointers to dump
          // data
@@ -286,3 +241,4 @@ void dump_file(uint32_t *blocks, char *file_dump) {
    free(ino);
    free(dentry);
 }
+*/

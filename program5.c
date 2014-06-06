@@ -6,7 +6,9 @@
 #include "synchro.h"
 #include "ext2reader.h"
 
-#define DEBUG 1
+#define PLAYBACK_DEBUG 1
+#define READ_DEBUG 0
+
 #define STACKSIZE 4 * (sizeof(regs_context_switch) + sizeof(regs_interrupt))
 
 uint8_t p_buffer[256];
@@ -49,8 +51,11 @@ int main(void) {
    os_init();
    clear_screen();
 
-   // create_thread(playback, NULL, STACKSIZE);
+#if PLAYBACK_DEBUG
+   create_thread(playback, NULL, STACKSIZE);
+#elif READ_DEBUG
    create_thread(read, NULL, STACKSIZE);
+#endif
    // create_thread(display, NULL, STACKSIZE);
    create_thread(idle, NULL, STACKSIZE);
    os_start();
@@ -59,11 +64,11 @@ int main(void) {
 }
 
 void playback() {
-   int i = 0; 
+   srand(452);
 
    while (true) {
-      print_string("foo ");
-      OCR2B = i++ % 256;
+      OCR2B = rand() % 256;   // this should sound like really strong rain
+      thread_sleep(0);
    }
 }
 

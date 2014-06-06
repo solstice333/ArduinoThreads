@@ -19,6 +19,7 @@
  */
 #ifndef SdReader_h
 #define SdReader_h
+
 #include "SdInfo.h"
 
 /**
@@ -74,7 +75,10 @@
 uint32_t cardSize(void);
 uint8_t sdInit(uint8_t slow);
 uint8_t sdWaitNotBusy(uint16_t timeoutMillis);
-uint8_t sdReadData(uint32_t block, uint16_t offset, uint8_t *dst, uint16_t count);
+uint8_t sdReadData(uint32_t block, uint16_t offset, uint8_t *dst, 
+ uint16_t count);
+void sdReadDataSafe(uint32_t block, uint16_t offset, uint8_t *dst, 
+ uint16_t count);
 void sdPartialBlockRead(uint8_t value);
 uint8_t sdReadBlock(uint32_t block, uint8_t *dst);
 uint8_t sdReadCID(cid_t* cid);

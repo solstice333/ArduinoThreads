@@ -15,10 +15,8 @@
 #include "globals.h"
 #include "SdReader.h"
 
-#define DEFAULT_SIZE 64
+#define DEFAULT_SIZE 32
 #define BLOCK_SIZE 512
-#define INODE_SIZE sizeof(ext2_inode)
-#define TO_BGDT 2
 #define ISDIR_SHIFT 14
 #define ISFILE_SHIFT 15
 

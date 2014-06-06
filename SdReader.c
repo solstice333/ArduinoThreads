@@ -270,8 +270,8 @@ uint8_t sdInit(uint8_t slow) {
  * \return The value one, true, is returned for success and
  * the value zero, false, is returned for failure.      
  */
-uint8_t sdReadData(uint32_t block,
-      uint16_t offset, uint8_t *dst, uint16_t count) {
+uint8_t sdReadData(uint32_t block, uint16_t offset, uint8_t *dst, 
+ uint16_t count) {
    uint16_t i;
 
    if (count == 0) return 1;
@@ -318,6 +318,19 @@ uint8_t sdReadData(uint32_t block,
    offset_ += count;
    if (!partialBlockRead_ || offset_ >= 512) sdReadEnd();
    return 1;
+}
+
+//------------------------------------------------------------------------------
+/** 
+ * Read data from sd card with an error message if it failed. Params are
+ * the same as sdReadData above. If failure, then program halts. 
+ */
+void sdReadDataSafe(uint32_t block, uint16_t offset, uint8_t *dst, 
+ uint16_t count) {
+   if (!sdReadData(block, offset, dst, count)) {
+      print_string("Error: failed to read sd card");
+      exit(1);
+   }
 }
 
 //------------------------------------------------------------------------------

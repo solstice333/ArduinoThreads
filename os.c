@@ -2,7 +2,7 @@
 #include "globals.h"
 
 #define DEBUG 0
-#define ROUND_ROBIN 1
+#define ROUND_ROBIN 0
 
 #if DEBUG
 static int val = 0;
